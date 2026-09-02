@@ -1,0 +1,635 @@
+// ============================================================
+// TECHSCHE CAMPUS - ADMISSION LAYOUT
+// Brand: #DE0327 + Black
+// ============================================================
+
+// ------------------------------------------------------------
+// Design Tokens
+// ------------------------------------------------------------
+
+:host {
+  --ts-red: #de0327;
+  --ts-red-dark: #b5001f;
+  --ts-red-light: #fff0f2;
+
+  --ts-black: #000000;
+  --ts-black-soft: #111111;
+
+  --ts-text: #181818;
+  --ts-text-secondary: #5f6368;
+  --ts-text-muted: #7a7f85;
+
+  --ts-background: #f7f7f8;
+  --ts-surface: #ffffff;
+
+  --ts-border: #e6e6e8;
+  --ts-border-dark: #d5d5d8;
+
+  --ts-radius-sm: 8px;
+  --ts-radius-md: 12px;
+  --ts-radius-lg: 16px;
+
+  --ts-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+  --ts-shadow-md: 0 8px 30px rgba(0, 0, 0, 0.06);
+
+  display: block;
+}
+
+// ------------------------------------------------------------
+// App Shell
+// ------------------------------------------------------------
+
+.app-shell {
+  min-height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
+  background: var(--ts-background);
+
+  color: var(--ts-text);
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+}
+
+// ------------------------------------------------------------
+// Header
+// ------------------------------------------------------------
+
+.site-header {
+  position: sticky;
+  top: 0;
+
+  z-index: 1000;
+
+  background: rgba(255, 255, 255, 0.97);
+
+  border-bottom: 1px solid var(--ts-border);
+
+  backdrop-filter: blur(12px);
+
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.header-container {
+  width: min(1240px, calc(100% - 48px));
+
+  min-height: 78px;
+
+  margin: 0 auto;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 24px;
+}
+
+// ------------------------------------------------------------
+// Brand
+// ------------------------------------------------------------
+
+.brand {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 14px;
+
+  color: var(--ts-black);
+
+  text-decoration: none;
+
+  min-width: 0;
+}
+
+.brand-logo {
+  width: 54px;
+
+  height: 54px;
+
+  object-fit: contain;
+
+  flex: 0 0 auto;
+}
+
+.brand-info {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 7px;
+
+  min-width: 0;
+}
+
+.brand-name {
+  font-size: 18px;
+
+  line-height: 1;
+
+  font-weight: 800;
+
+  letter-spacing: 0.03em;
+
+  color: var(--ts-black);
+
+  white-space: nowrap;
+}
+
+.brand-line {
+  width: 34px;
+
+  height: 3px;
+
+  border-radius: 999px;
+
+  background: var(--ts-red);
+}
+
+// ------------------------------------------------------------
+// Application Information
+// ------------------------------------------------------------
+
+.application-info {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: flex-end;
+
+  gap: 5px;
+
+  padding-left: 20px;
+
+  border-left: 1px solid var(--ts-border);
+}
+
+.application-label {
+  font-size: 11px;
+
+  line-height: 1;
+
+  font-weight: 600;
+
+  letter-spacing: 0.08em;
+
+  text-transform: uppercase;
+
+  color: var(--ts-text-muted);
+}
+
+.application-number {
+  font-size: 15px;
+
+  line-height: 1;
+
+  font-weight: 800;
+
+  letter-spacing: 0.04em;
+
+  color: var(--ts-red);
+}
+
+// ------------------------------------------------------------
+// Main
+// ------------------------------------------------------------
+
+.main-content {
+  flex: 1;
+
+  width: 100%;
+
+  min-width: 0;
+}
+
+// ------------------------------------------------------------
+// Footer
+// ------------------------------------------------------------
+
+.site-footer {
+  margin-top: auto;
+
+  background: var(--ts-black);
+
+  color: #ffffff;
+}
+
+// ------------------------------------------------------------
+// Footer Main
+// ------------------------------------------------------------
+
+.footer-container {
+  width: min(1240px, calc(100% - 48px));
+
+  margin: 0 auto;
+
+  padding: 48px 0;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(260px, 0.8fr)
+    minmax(500px, 1.2fr);
+
+  align-items: center;
+
+  gap: 70px;
+}
+
+// ------------------------------------------------------------
+// Footer Brand
+// ------------------------------------------------------------
+
+.footer-brand {
+  display: flex;
+
+  align-items: center;
+
+  gap: 16px;
+}
+
+.footer-logo {
+  width: 54px;
+
+  height: 54px;
+
+  object-fit: contain;
+
+  background: #ffffff;
+
+  border-radius: var(--ts-radius-sm);
+
+  padding: 5px;
+
+  flex: 0 0 auto;
+}
+
+.footer-brand-content {
+  min-width: 0;
+}
+
+.footer-brand-content h3 {
+  margin: 0 0 6px;
+
+  color: #ffffff;
+
+  font-size: 17px;
+
+  line-height: 1.2;
+
+  font-weight: 800;
+
+  letter-spacing: 0.03em;
+}
+
+.footer-brand-content p {
+  margin: 0;
+
+  color: #a7a7a7;
+
+  font-size: 13px;
+
+  line-height: 1.5;
+}
+
+// ------------------------------------------------------------
+// Footer Contact
+// ------------------------------------------------------------
+
+.footer-contact {
+  display: grid;
+
+  grid-template-columns:
+    minmax(200px, 1.3fr)
+    minmax(160px, 0.8fr)
+    minmax(160px, 0.8fr);
+
+  gap: 28px;
+}
+
+.contact-item {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 12px;
+
+  min-width: 0;
+}
+
+.contact-icon {
+  width: 34px;
+
+  height: 34px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex: 0 0 34px;
+
+  border-radius: 50%;
+
+  background: rgba(222, 3, 39, 0.12);
+
+  color: var(--ts-red);
+
+  font-size: 15px;
+
+  font-weight: 700;
+}
+
+.contact-content {
+  min-width: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 5px;
+}
+
+.contact-label {
+  font-size: 10px;
+
+  line-height: 1;
+
+  font-weight: 700;
+
+  letter-spacing: 0.1em;
+
+  text-transform: uppercase;
+
+  color: #858585;
+}
+
+.contact-value {
+  font-size: 13px;
+
+  line-height: 1.55;
+
+  color: #eeeeee;
+
+  overflow-wrap: anywhere;
+}
+
+.contact-link {
+  text-decoration: none;
+
+  transition: color 160ms ease;
+}
+
+.contact-link:hover {
+  color: var(--ts-red);
+}
+
+// ------------------------------------------------------------
+// Footer Bottom
+// ------------------------------------------------------------
+
+.footer-bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-bottom-container {
+  width: min(1240px, calc(100% - 48px));
+
+  min-height: 60px;
+
+  margin: 0 auto;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 20px;
+}
+
+.footer-bottom-container p {
+  margin: 0;
+
+  color: #858585;
+
+  font-size: 12px;
+
+  line-height: 1.5;
+}
+
+.footer-tagline {
+  color: var(--ts-red) !important;
+
+  font-weight: 600;
+}
+
+// ------------------------------------------------------------
+// Tablet
+// ------------------------------------------------------------
+
+@media (max-width: 1024px) {
+  .header-container,
+  .footer-container,
+  .footer-bottom-container {
+    width: min(100% - 40px, 1240px);
+  }
+
+  .footer-container {
+    grid-template-columns: 1fr;
+
+    gap: 36px;
+  }
+
+  .footer-contact {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 24px;
+  }
+}
+
+// ------------------------------------------------------------
+// Mobile
+// ------------------------------------------------------------
+
+@media (max-width: 768px) {
+  .header-container {
+    width: calc(100% - 28px);
+
+    min-height: 70px;
+
+    gap: 14px;
+  }
+
+  .brand {
+    gap: 10px;
+  }
+
+  .brand-logo {
+    width: 44px;
+
+    height: 44px;
+  }
+
+  .brand-name {
+    font-size: 15px;
+
+    letter-spacing: 0.025em;
+  }
+
+  .brand-line {
+    width: 27px;
+
+    height: 2px;
+  }
+
+  .application-info {
+    padding-left: 14px;
+
+    gap: 4px;
+  }
+
+  .application-label {
+    font-size: 9px;
+  }
+
+  .application-number {
+    font-size: 12px;
+  }
+
+  .footer-container {
+    width: calc(100% - 28px);
+
+    padding: 38px 0;
+  }
+
+  .footer-contact {
+    grid-template-columns: 1fr;
+
+    gap: 20px;
+  }
+
+  .footer-bottom-container {
+    width: calc(100% - 28px);
+
+    min-height: auto;
+
+    padding: 18px 0;
+
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    gap: 6px;
+  }
+}
+
+// ------------------------------------------------------------
+// Small Mobile
+// ------------------------------------------------------------
+
+@media (max-width: 480px) {
+  .header-container {
+    width: calc(100% - 20px);
+
+    min-height: 64px;
+  }
+
+  .brand-logo {
+    width: 38px;
+
+    height: 38px;
+  }
+
+  .brand-name {
+    font-size: 13px;
+  }
+
+  .brand-line {
+    width: 24px;
+  }
+
+  .application-info {
+    padding-left: 10px;
+  }
+
+  .application-label {
+    font-size: 8px;
+
+    letter-spacing: 0.05em;
+  }
+
+  .application-number {
+    font-size: 10px;
+
+    letter-spacing: 0.02em;
+  }
+
+  .footer-container,
+  .footer-bottom-container {
+    width: calc(100% - 20px);
+  }
+
+  .footer-brand {
+    align-items: flex-start;
+  }
+
+  .footer-logo {
+    width: 46px;
+
+    height: 46px;
+  }
+
+  .footer-brand-content h3 {
+    font-size: 15px;
+  }
+
+  .footer-brand-content p {
+    font-size: 12px;
+  }
+}
+
+// ------------------------------------------------------------
+// Very Small Screens
+// ------------------------------------------------------------
+
+@media (max-width: 360px) {
+  .header-container {
+    gap: 8px;
+  }
+
+  .brand {
+    gap: 7px;
+  }
+
+  .brand-logo {
+    width: 34px;
+
+    height: 34px;
+  }
+
+  .brand-name {
+    font-size: 12px;
+  }
+
+  .application-info {
+    padding-left: 7px;
+  }
+
+  .application-number {
+    font-size: 9px;
+  }
+}

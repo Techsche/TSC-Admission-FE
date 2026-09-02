@@ -1,0 +1,412 @@
+<div class="preview-page">
+  <!-- =========================================================
+       APPLICATION DOCUMENT
+  ========================================================== -->
+
+  <main class="application-document">
+    <!-- =======================================================
+         LETTERHEAD
+    ======================================================== -->
+
+    <header class="letterhead">
+      <!-- LOGO -->
+
+      <div class="logo-wrapper">
+        <img src="/images/techsche-campus-logo.png" alt="Techsche Campus" class="college-logo" />
+      </div>
+
+      <!-- CONTACT DETAILS -->
+
+      <div class="contact-details">
+        <p class="address">
+          Second floor, Mahima Tower, Nanthencode P.O, Kowdiar, Thiruvananthapuram, Kerala - 695011
+        </p>
+
+        <div class="contact-row">
+          <span> +91 74171 74170 </span>
+
+          <span class="contact-divider"></span>
+
+          <span> techschecampus&#64;gmail.com </span>
+        </div>
+      </div>
+
+      <!-- APPLICATION TITLE -->
+
+      <div class="application-title">
+        <h3>Admission Application</h3>
+
+        <div class="application-number">
+          <span> Application No. </span>
+
+          <strong>
+            {{ applicationNumber }}
+          </strong>
+        </div>
+      </div>
+
+      <!-- STUDENT PHOTO -->
+      @if (photoPreviewUrl()) {
+        <div class="header-photo">
+          <img [src]="photoPreviewUrl()" alt="Student Photo" class="student-photo" />
+        </div>
+      }
+    </header>
+
+    <!-- =======================================================
+         STUDENT DETAILS
+    ======================================================== -->
+
+    <section class="application-section">
+      <div class="section-heading">
+        <span class="section-number"> 01 </span>
+
+        <h2>Student Details</h2>
+      </div>
+
+      <div class="details-grid">
+        <div class="detail-item">
+          <span class="detail-label"> Full Name </span>
+
+          <span class="detail-value">
+            {{ application?.fullName }}
+          </span>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label"> Email Address </span>
+
+          <span class="detail-value">
+            {{ application?.email }}
+          </span>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label"> Mobile Number </span>
+
+          <span class="detail-value">
+            {{ application?.mobile }}
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================
+         PARENT / GUARDIAN
+    ======================================================== -->
+
+    <section class="application-section">
+      <div class="section-heading">
+        <span class="section-number"> 02 </span>
+
+        <h2>Parent / Guardian Details</h2>
+      </div>
+
+      <div class="details-grid">
+        <div class="detail-item">
+          <span class="detail-label"> Father's Name </span>
+
+          <span class="detail-value">
+            {{ application?.fatherName }}
+          </span>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label"> Father's Mobile </span>
+
+          <span class="detail-value">
+            {{ application?.fatherMobile }}
+          </span>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label"> Mother's Name </span>
+
+          <span class="detail-value">
+            {{ application?.motherName }}
+          </span>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label"> Mother's Mobile </span>
+
+          <span class="detail-value">
+            {{ application?.motherMobile }}
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================
+         ADDRESS
+    ======================================================== -->
+
+    <section class="application-section">
+      <div class="section-heading">
+        <span class="section-number"> 03 </span>
+
+        <h2>Address Details</h2>
+      </div>
+
+      <div class="address-grid">
+        <!-- CURRENT ADDRESS -->
+
+        <div class="address-card">
+          <div class="address-card-header">
+            <span> 01 </span>
+
+            <div>
+              <h3>Current Address</h3>
+
+              <small> Present residential address </small>
+            </div>
+          </div>
+
+          <p>
+            {{ application?.currentAddressLine1 }}
+
+            @if (application?.currentAddressLine2) {
+              , {{ application?.currentAddressLine2 }}
+            }
+
+            , {{ application?.currentCity }}
+
+            , {{ application?.currentDistrict }}
+
+            , {{ application?.currentState }}
+
+            -
+            {{ application?.currentPincode }}
+          </p>
+        </div>
+
+        <!-- PERMANENT ADDRESS -->
+
+        <div class="address-card">
+          <div class="address-card-header">
+            <span> 02 </span>
+
+            <div>
+              <h3>Permanent Address</h3>
+
+              <small> Permanent residential address </small>
+            </div>
+          </div>
+
+          <p>
+            {{ application?.permanentAddressLine1 }}
+
+            @if (application?.permanentAddressLine2) {
+              , {{ application?.permanentAddressLine2 }}
+            }
+
+            , {{ application?.permanentCity }}
+
+            , {{ application?.permanentDistrict }}
+
+            , {{ application?.permanentState }}
+
+            -
+            {{ application?.permanentPincode }}
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================
+         EDUCATION
+    ======================================================== -->
+
+    <section class="application-section">
+      <div class="section-heading">
+        <span class="section-number"> 04 </span>
+
+        <h2>Educational Qualification</h2>
+      </div>
+
+      <div class="qualification-box">
+        <span class="qualification-label"> Highest Qualification </span>
+
+        <strong class="qualification-value">
+          @switch (application?.highestQualification) {
+            @case ('PG') {
+              Post Graduate (PG)
+            }
+
+            @case ('UG') {
+              Under Graduate (UG)
+            }
+
+            @case ('+2') {
+              Higher Secondary (+2)
+            }
+
+            @case ('10') {
+              Secondary School (10)
+            }
+
+            @default {
+              {{ application?.highestQualification }}
+            }
+          }
+        </strong>
+      </div>
+    </section>
+
+    <!-- =======================================================
+         ATTACHED DOCUMENTS
+    ======================================================== -->
+
+    <section class="application-section documents-section">
+      <div class="section-heading">
+        <span class="section-number"> 05 </span>
+
+        <h2>Attached Documents</h2>
+      </div>
+
+      <!-- QUALIFICATION PDF -->
+
+      @if (qualificationPdfUrl()) {
+        <div class="document-card">
+          <div class="document-header">
+            <div class="document-title">
+              <span class="document-number"> 01 </span>
+
+              <div>
+                <h3>Qualification Certificate</h3>
+
+                <small> Submitted document </small>
+              </div>
+            </div>
+
+            <span class="document-type"> PDF </span>
+          </div>
+
+          <div class="pdf-container">
+            <iframe
+              [src]="qualificationPdfUrl()"
+              title="Qualification Certificate"
+              class="document-pdf"
+            ></iframe>
+          </div>
+        </div>
+      }
+
+      <!-- AADHAAR PDF -->
+
+      @if (aadhaarPdfUrl()) {
+        <div class="document-card">
+          <div class="document-header">
+            <div class="document-title">
+              <span class="document-number"> 02 </span>
+
+              <div>
+                <h3>Aadhaar Card</h3>
+
+                <small> Submitted document </small>
+              </div>
+            </div>
+
+            <span class="document-type"> PDF </span>
+          </div>
+
+          <div class="pdf-container">
+            <iframe [src]="aadhaarPdfUrl()" title="Aadhaar Card" class="document-pdf"></iframe>
+          </div>
+        </div>
+      }
+    </section>
+
+    <!-- =======================================================
+         DECLARATION
+    ======================================================== -->
+
+    <section class="application-section declaration-section">
+      <div class="section-heading">
+        <span class="section-number"> 06 </span>
+
+        <h2>Declaration</h2>
+      </div>
+
+      <div class="declaration-list">
+        @for (declaration of declarationPoints; track $index) {
+          <div class="declaration-item">
+            <span class="declaration-number">
+              {{ $index + 1 }}
+            </span>
+
+            <p>
+              {{ declaration }}
+            </p>
+          </div>
+        }
+      </div>
+
+      <div class="declaration-status">
+        <span class="status-icon"> ✓ </span>
+
+        <div>
+          <strong> Declaration Accepted </strong>
+
+          <small> Applicant has confirmed the above declaration. </small>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================
+         SIGNATURE / PLACE / DATE
+    ======================================================== -->
+
+    <section class="signature-section">
+      <!-- SIGNATURE LEFT -->
+
+      <div class="signature-area">
+        @if (signaturePreviewUrl()) {
+          <div class="signature-image-wrapper">
+            <img [src]="signaturePreviewUrl()" alt="Student Signature" class="student-signature" />
+          </div>
+        }
+
+        <!-- NAME UNDER SIGNATURE -->
+
+        <strong class="signature-name">
+          {{ application?.fullName }}
+        </strong>
+
+        <span class="signature-label"> Applicant </span>
+      </div>
+
+      <!-- PLACE / DATE RIGHT -->
+
+      <div class="signature-details">
+        <div class="signature-detail">
+          <span> Place </span>
+
+          <strong>
+            {{ application?.currentCity }}
+          </strong>
+        </div>
+
+        <div class="signature-detail">
+          <span> Date </span>
+
+          <strong>
+            {{ applicationDate | date: 'dd/MM/yyyy' }}
+          </strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================
+         DOCUMENT FOOTER
+    ======================================================== -->
+
+    <footer class="application-footer">
+      <span> Admission Application </span>
+
+      <span>
+        {{ applicationNumber }}
+      </span>
+    </footer>
+  </main>
+</div>

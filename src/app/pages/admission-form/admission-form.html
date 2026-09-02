@@ -1,0 +1,1118 @@
+@if (loading) {
+  <div class="page-state">
+    <div class="loader"></div>
+
+    <h2>Preparing your application</h2>
+
+    <p>Please wait while we prepare your application.</p>
+  </div>
+} @else if (errorMessage) {
+  <div class="page-state error-state">
+    <div class="error-icon">!</div>
+
+    <h2>Something went wrong</h2>
+
+    <p>{{ errorMessage }}</p>
+
+    <button type="button" class="btn btn-primary" (click)="initializeApplication()">
+      Try Again
+    </button>
+  </div>
+} @else {
+  <section class="admission-page">
+    <!-- =====================================================
+         PAGE HEADER
+    ====================================================== -->
+
+    <div class="page-header">
+      <div>
+        <span class="eyebrow"> ADMISSION APPLICATION </span>
+
+        <h1>Application Form</h1>
+
+        <p>Please provide the required information carefully.</p>
+      </div>
+
+      <div class="application-badge">
+        <span>Application No.</span>
+
+        <strong>
+          {{ applicationNumber }}
+        </strong>
+      </div>
+    </div>
+
+    <!-- =====================================================
+         PROGRESS
+    ====================================================== -->
+
+    <div class="progress-wrapper">
+      <div class="progress-header">
+        <span> Step {{ currentStep }} of {{ totalSteps }} </span>
+
+        <span>
+          @switch (currentStep) {
+            @case (1) {
+              Student Details
+            }
+
+            @case (2) {
+              Parent / Guardian
+            }
+
+            @case (3) {
+              Address
+            }
+
+            @case (4) {
+              Education & Documents
+            }
+
+            @case (5) {
+              Declaration
+            }
+          }
+        </span>
+      </div>
+
+      <div class="progress-bar">
+        <div class="progress-value" [style.width.%]="(currentStep / totalSteps) * 100"></div>
+      </div>
+
+      <div class="step-list">
+        @for (
+          step of ['Student', 'Parent', 'Address', 'Education & Documents', 'Declaration'];
+          track $index
+        ) {
+          <div
+            class="step"
+            [class.active]="currentStep === $index + 1"
+            [class.completed]="currentStep > $index + 1"
+          >
+            <span class="step-number">
+              @if (currentStep > $index + 1) {
+                ✓
+              } @else {
+                {{ $index + 1 }}
+              }
+            </span>
+
+            <span class="step-name">
+              {{ step }}
+            </span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- =====================================================
+         FORM
+    ====================================================== -->
+
+    <form [formGroup]="studentForm" (ngSubmit)="continue()" class="form-card" novalidate>
+      <!-- ===================================================
+           STEP 1 - STUDENT
+      ==================================================== -->
+
+      @if (currentStep === 1) {
+        <div class="section-header">
+          <div class="section-number">01</div>
+
+          <div>
+            <h2>Student Details</h2>
+
+            <p>Enter the student's basic contact information.</p>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <!-- Full Name -->
+
+          <div class="form-field full-width">
+            <label for="fullName">
+              Full Name
+              <span class="required">*</span>
+            </label>
+
+            <input
+              id="fullName"
+              type="text"
+              formControlName="fullName"
+              placeholder="Enter your full name"
+              autocomplete="name"
+              [class.invalid]="isInvalid('fullName')"
+            />
+
+            @if (isInvalid('fullName')) {
+              <small class="field-error">
+                @if (studentForm.controls.fullName.errors?.['required']) {
+                  Full name is required.
+                }
+
+                @if (studentForm.controls.fullName.errors?.['minlength']) {
+                  Please enter at least 2 characters.
+                }
+              </small>
+            }
+          </div>
+
+          <!-- Email -->
+
+          <div class="form-field">
+            <label for="email">
+              Email Address
+              <span class="required">*</span>
+            </label>
+
+            <input
+              id="email"
+              type="email"
+              formControlName="email"
+              placeholder="you@example.com"
+              autocomplete="email"
+              [class.invalid]="isInvalid('email')"
+            />
+
+            @if (isInvalid('email')) {
+              <small class="field-error"> Please enter a valid email address. </small>
+            }
+          </div>
+
+          <!-- Mobile -->
+
+          <div class="form-field">
+            <label for="mobile">
+              Mobile Number
+              <span class="required">*</span>
+            </label>
+
+            <input
+              id="mobile"
+              type="tel"
+              formControlName="mobile"
+              placeholder="10-digit mobile number"
+              maxlength="10"
+              autocomplete="tel"
+              inputmode="numeric"
+              [class.invalid]="isInvalid('mobile')"
+            />
+
+            @if (isInvalid('mobile')) {
+              <small class="field-error"> Please enter a valid 10-digit mobile number. </small>
+            }
+          </div>
+        </div>
+
+        <div class="form-note">
+          <div class="note-icon">i</div>
+
+          <p>
+            Please make sure your contact details are correct. Important admission-related
+            communication may be sent to these details.
+          </p>
+        </div>
+      }
+
+      <!-- ===================================================
+           STEP 2 - PARENT
+      ==================================================== -->
+
+      @if (currentStep === 2) {
+        <div class="section-header">
+          <div class="section-number">02</div>
+
+          <div>
+            <h2>Parent / Guardian Details</h2>
+
+            <p>Provide the details of the student's parents or guardians.</p>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <!-- Father Name -->
+
+          <div class="form-field">
+            <label for="fatherName">
+              Father's Name
+              <span class="required">*</span>
+            </label>
+
+            <input
+              id="fatherName"
+              type="text"
+              formControlName="fatherName"
+              placeholder="Enter father's full name"
+              autocomplete="off"
+              [class.invalid]="isInvalid('fatherName')"
+            />
+
+            @if (isInvalid('fatherName')) {
+              <small class="field-error"> Father's name is required. </small>
+            }
+          </div>
+
+          <!-- Father Mobile -->
+
+          <div class="form-field">
+            <label for="fatherMobile">
+              Father's Mobile Number
+              <span class="required">*</span>
+            </label>
+
+            <input
+              id="fatherMobile"
+              type="tel"
+              formControlName="fatherMobile"
+              placeholder="10-digit mobile number"
+              maxlength="10"
+              inputmode="numeric"
+              autocomplete="off"
+              [class.invalid]="isInvalid('fatherMobile')"
+            />
+
+            @if (isInvalid('fatherMobile')) {
+              <small class="field-error"> Please enter a valid 10-digit mobile number. </small>
+            }
+          </div>
+
+          <!-- Mother Name -->
+
+          <div class="form-field">
+            <label for="motherName">
+              Mother's Name
+              <span class="required">*</span>
+            </label>
+
+            <input
+              id="motherName"
+              type="text"
+              formControlName="motherName"
+              placeholder="Enter mother's full name"
+              autocomplete="off"
+              [class.invalid]="isInvalid('motherName')"
+            />
+
+            @if (isInvalid('motherName')) {
+              <small class="field-error"> Mother's name is required. </small>
+            }
+          </div>
+
+          <!-- Mother Mobile -->
+
+          <div class="form-field">
+            <label for="motherMobile">
+              Mother's Mobile Number
+              <span class="required">*</span>
+            </label>
+
+            <input
+              id="motherMobile"
+              type="tel"
+              formControlName="motherMobile"
+              placeholder="10-digit mobile number"
+              maxlength="10"
+              inputmode="numeric"
+              autocomplete="off"
+              [class.invalid]="isInvalid('motherMobile')"
+            />
+
+            @if (isInvalid('motherMobile')) {
+              <small class="field-error"> Please enter a valid 10-digit mobile number. </small>
+            }
+          </div>
+        </div>
+
+        <div class="form-note">
+          <div class="note-icon">i</div>
+
+          <p>
+            Please enter the parent or guardian details exactly as they should appear on the
+            admission records.
+          </p>
+        </div>
+      }
+
+      <!-- ===================================================
+           STEP 3 - ADDRESS
+      ==================================================== -->
+
+      @if (currentStep === 3) {
+        <div class="section-header">
+          <div class="section-number">03</div>
+
+          <div>
+            <h2>Address Details</h2>
+
+            <p>Provide your current and permanent residential address.</p>
+          </div>
+        </div>
+
+        <div class="address-section">
+          <!-- CURRENT ADDRESS -->
+
+          <div class="address-block">
+            <div class="address-title">
+              <div class="address-icon">01</div>
+
+              <div>
+                <h3>Current Address</h3>
+
+                <p>Where you currently reside</p>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-field full-width">
+                <label for="currentAddressLine1">
+                  Address Line 1
+                  <span class="required">*</span>
+                </label>
+
+                <input
+                  id="currentAddressLine1"
+                  type="text"
+                  formControlName="currentAddressLine1"
+                  placeholder="House / Building / Street"
+                  autocomplete="address-line1"
+                  [class.invalid]="isInvalid('currentAddressLine1')"
+                />
+
+                @if (isInvalid('currentAddressLine1')) {
+                  <small class="field-error"> Address Line 1 is required. </small>
+                }
+              </div>
+
+              <div class="form-field full-width">
+                <label for="currentAddressLine2">
+                  Address Line 2
+                  <span class="optional">Optional</span>
+                </label>
+
+                <input
+                  id="currentAddressLine2"
+                  type="text"
+                  formControlName="currentAddressLine2"
+                  placeholder="Area / Landmark"
+                  autocomplete="address-line2"
+                />
+              </div>
+
+              <div class="form-field">
+                <label for="currentCity">
+                  City
+                  <span class="required">*</span>
+                </label>
+
+                <input
+                  id="currentCity"
+                  type="text"
+                  formControlName="currentCity"
+                  placeholder="Enter city"
+                  autocomplete="address-level2"
+                  [class.invalid]="isInvalid('currentCity')"
+                />
+
+                @if (isInvalid('currentCity')) {
+                  <small class="field-error"> City is required. </small>
+                }
+              </div>
+
+              <div class="form-field">
+                <label for="currentDistrict">
+                  District
+                  <span class="required">*</span>
+                </label>
+
+                <input
+                  id="currentDistrict"
+                  type="text"
+                  formControlName="currentDistrict"
+                  placeholder="Enter district"
+                  [class.invalid]="isInvalid('currentDistrict')"
+                />
+
+                @if (isInvalid('currentDistrict')) {
+                  <small class="field-error"> District is required. </small>
+                }
+              </div>
+
+              <div class="form-field">
+                <label for="currentState">
+                  State
+                  <span class="required">*</span>
+                </label>
+
+                <input
+                  id="currentState"
+                  type="text"
+                  formControlName="currentState"
+                  placeholder="Enter state"
+                  autocomplete="address-level1"
+                  [class.invalid]="isInvalid('currentState')"
+                />
+
+                @if (isInvalid('currentState')) {
+                  <small class="field-error"> State is required. </small>
+                }
+              </div>
+
+              <div class="form-field">
+                <label for="currentPincode">
+                  PIN Code
+                  <span class="required">*</span>
+                </label>
+
+                <input
+                  id="currentPincode"
+                  type="text"
+                  formControlName="currentPincode"
+                  placeholder="6-digit PIN code"
+                  maxlength="6"
+                  inputmode="numeric"
+                  autocomplete="postal-code"
+                  [class.invalid]="isInvalid('currentPincode')"
+                />
+
+                @if (isInvalid('currentPincode')) {
+                  <small class="field-error"> Enter a valid 6-digit PIN code. </small>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- SAME ADDRESS -->
+
+          <div class="same-address-wrapper">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="sameAddress" />
+
+              <span class="custom-checkbox"></span>
+
+              <span class="checkbox-text"> Permanent address is same as current address </span>
+            </label>
+          </div>
+
+          <!-- PERMANENT ADDRESS -->
+
+          <div class="address-block">
+            <div class="address-title">
+              <div class="address-icon">02</div>
+
+              <div>
+                <h3>Permanent Address</h3>
+
+                <p>Your permanent residential address</p>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-field full-width">
+                <label for="permanentAddressLine1">
+                  Address Line 1
+                  <span class="required">*</span>
+                </label>
+
+                <input
+                  id="permanentAddressLine1"
+                  type="text"
+                  formControlName="permanentAddressLine1"
+                  placeholder="House / Building / Street"
+                  autocomplete="address-line1"
+                  [class.invalid]="isInvalid('permanentAddressLine1')"
+                />
+
+                @if (isInvalid('permanentAddressLine1')) {
+                  <small class="field-error"> Address Line 1 is required. </small>
+                }
+              </div>
+
+              <div class="form-field full-width">
+                <label for="permanentAddressLine2">
+                  Address Line 2
+                  <span class="optional">Optional</span>
+                </label>
+
+                <input
+                  id="permanentAddressLine2"
+                  type="text"
+                  formControlName="permanentAddressLine2"
+                  placeholder="Area / Landmark"
+                  autocomplete="address-line2"
+                />
+              </div>
+
+              <div class="form-field">
+                <label for="permanentCity">
+                  City
+                  <span class="required">*</span>
+                </label>
+
+                <input
+                  id="permanentCity"
+                  type="text"
+                  formControlName="permanentCity"
+                  placeholder="Enter city"
+                  [class.invalid]="isInvalid('permanentCity')"
+                />
+
+                @if (isInvalid('permanentCity')) {
+                  <small class="field-error"> City is required. </small>
+                }
+              </div>
+
+              <div class="form-field">
+                <label for="permanentDistrict">
+                  District
+                  <span class="required">*</span>
+                </label>
+
+                <input
+                  id="permanentDistrict"
+                  type="text"
+                  formControlName="permanentDistrict"
+                  placeholder="Enter district"
+                  [class.invalid]="isInvalid('permanentDistrict')"
+                />
+
+                @if (isInvalid('permanentDistrict')) {
+                  <small class="field-error"> District is required. </small>
+                }
+              </div>
+
+              <div class="form-field">
+                <label for="permanentState">
+                  State
+                  <span class="required">*</span>
+                </label>
+
+                <input
+                  id="permanentState"
+                  type="text"
+                  formControlName="permanentState"
+                  placeholder="Enter state"
+                  [class.invalid]="isInvalid('permanentState')"
+                />
+
+                @if (isInvalid('permanentState')) {
+                  <small class="field-error"> State is required. </small>
+                }
+              </div>
+
+              <div class="form-field">
+                <label for="permanentPincode">
+                  PIN Code
+                  <span class="required">*</span>
+                </label>
+
+                <input
+                  id="permanentPincode"
+                  type="text"
+                  formControlName="permanentPincode"
+                  placeholder="6-digit PIN code"
+                  maxlength="6"
+                  inputmode="numeric"
+                  autocomplete="postal-code"
+                  [class.invalid]="isInvalid('permanentPincode')"
+                />
+
+                @if (isInvalid('permanentPincode')) {
+                  <small class="field-error"> Enter a valid 6-digit PIN code. </small>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-note">
+          <div class="note-icon">i</div>
+
+          <p>
+            Please ensure that the address and PIN code are accurate. This information will appear
+            in your final admission application.
+          </p>
+        </div>
+      }
+
+      <!-- ===================================================
+           STEP 4 - EDUCATION & DOCUMENTS
+      ==================================================== -->
+
+      @if (currentStep === 4) {
+        <div class="section-header">
+          <div class="section-number">04</div>
+
+          <div>
+            <h2>Educational Qualification & Documents</h2>
+
+            <p>Provide your highest qualification and upload the required documents.</p>
+          </div>
+        </div>
+
+        <div class="education-section">
+          <!-- QUALIFICATION -->
+
+          <div class="education-card">
+            <div class="education-card-header">
+              <div class="education-icon">01</div>
+
+              <div>
+                <h3>Highest Qualification</h3>
+
+                <p>Select your highest completed qualification.</p>
+              </div>
+            </div>
+
+            <div class="qualification-options">
+              <label class="qualification-option">
+                <input type="radio" value="PG" formControlName="highestQualification" />
+
+                <span class="qualification-radio"></span>
+
+                <span class="qualification-content">
+                  <strong>PG</strong>
+
+                  <small>Post Graduate</small>
+                </span>
+              </label>
+
+              <label class="qualification-option">
+                <input type="radio" value="UG" formControlName="highestQualification" />
+
+                <span class="qualification-radio"></span>
+
+                <span class="qualification-content">
+                  <strong>UG</strong>
+
+                  <small>Under Graduate</small>
+                </span>
+              </label>
+
+              <label class="qualification-option">
+                <input type="radio" value="+2" formControlName="highestQualification" />
+
+                <span class="qualification-radio"></span>
+
+                <span class="qualification-content">
+                  <strong>+2</strong>
+
+                  <small>Higher Secondary</small>
+                </span>
+              </label>
+
+              <label class="qualification-option">
+                <input type="radio" value="10" formControlName="highestQualification" />
+
+                <span class="qualification-radio"></span>
+
+                <span class="qualification-content">
+                  <strong>10</strong>
+
+                  <small>Secondary School</small>
+                </span>
+              </label>
+            </div>
+
+            @if (isInvalid('highestQualification')) {
+              <small class="field-error qualification-error">
+                Please select your highest qualification.
+              </small>
+            }
+          </div>
+
+          <!-- DOCUMENTS -->
+
+          <div class="education-card">
+            <div class="education-card-header">
+              <div class="education-icon">02</div>
+
+              <div>
+                <h3>Required Documents</h3>
+
+                <p>Upload all required documents.</p>
+              </div>
+            </div>
+
+            <div class="document-upload-grid">
+              <!-- Qualification Certificate -->
+
+              <div class="document-upload">
+                <div class="document-upload-title">
+                  <strong>
+                    Qualification Certificate
+                    <span class="required">*</span>
+                  </strong>
+
+                  <small> PDF, JPG or PNG · Max 10 MB </small>
+                </div>
+
+                @if (!qualificationFile) {
+                  <label class="file-dropzone">
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                      (change)="onFileSelected($event, 'qualification')"
+                    />
+
+                    <span class="upload-icon">↑</span>
+
+                    <span class="upload-text"> Choose certificate </span>
+
+                    <span class="upload-hint"> Click to browse </span>
+                  </label>
+                } @else {
+                  <div class="selected-file">
+                    <div class="file-icon">PDF</div>
+
+                    <div class="selected-file-info">
+                      <strong>
+                        {{ qualificationFileName }}
+                      </strong>
+
+                      <small> File selected </small>
+                    </div>
+
+                    <button type="button" class="remove-file" (click)="removeFile('qualification')">
+                      Remove
+                    </button>
+                  </div>
+                }
+
+                @if (fileErrors['qualification']) {
+                  <small class="field-error">
+                    {{ fileErrors['qualification'] }}
+                  </small>
+                }
+              </div>
+
+              <!-- Aadhaar -->
+
+              <div class="document-upload">
+                <div class="document-upload-title">
+                  <strong>
+                    Aadhaar Card
+                    <span class="required">*</span>
+                  </strong>
+
+                  <small> PDF, JPG or PNG · Max 10 MB </small>
+                </div>
+
+                @if (!aadhaarFile) {
+                  <label class="file-dropzone">
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                      (change)="onFileSelected($event, 'aadhaar')"
+                    />
+
+                    <span class="upload-icon">↑</span>
+
+                    <span class="upload-text"> Choose Aadhaar </span>
+
+                    <span class="upload-hint"> Click to browse </span>
+                  </label>
+                } @else {
+                  <div class="selected-file">
+                    <div class="file-icon">PDF</div>
+
+                    <div class="selected-file-info">
+                      <strong>
+                        {{ aadhaarFileName }}
+                      </strong>
+
+                      <small> File selected </small>
+                    </div>
+
+                    <button type="button" class="remove-file" (click)="removeFile('aadhaar')">
+                      Remove
+                    </button>
+                  </div>
+                }
+
+                @if (fileErrors['aadhaar']) {
+                  <small class="field-error">
+                    {{ fileErrors['aadhaar'] }}
+                  </small>
+                }
+              </div>
+
+              <!-- Photo -->
+
+              <!-- ======================================================
+     PHOTO
+======================================================= -->
+
+              <div class="document-upload">
+                <div class="document-upload-title">
+                  <strong>
+                    Passport Size Photo
+                    <span class="required">*</span>
+                  </strong>
+
+                  <small> JPG / PNG · Max 2 MB · Min 300 × 400 px </small>
+                </div>
+
+                @if (!photoFile) {
+                  <label class="file-dropzone">
+                    <input
+                      type="file"
+                      accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                      (change)="onFileSelected($event, 'photo')"
+                    />
+
+                    <span class="upload-icon">↑</span>
+
+                    <span class="upload-text"> Choose photo </span>
+
+                    <span class="upload-hint"> Click to browse </span>
+                  </label>
+                } @else {
+                  <div class="selected-image-file">
+                    <!-- IMAGE PREVIEW -->
+
+                    @if (photoPreviewUrl) {
+                      <div class="image-preview photo-preview">
+                        <img [src]="photoPreviewUrl" alt="Passport Size Photo" />
+                      </div>
+                    }
+
+                    <!-- FILE INFO -->
+
+                    <div class="selected-file-info">
+                      <strong>
+                        {{ photoFileName }}
+                      </strong>
+
+                      <small> Photo selected </small>
+                    </div>
+
+                    <!-- REMOVE -->
+
+                    <button type="button" class="remove-file" (click)="removeFile('photo')">
+                      Remove
+                    </button>
+                  </div>
+                }
+
+                @if (fileErrors['photo']) {
+                  <small class="field-error">
+                    {{ fileErrors['photo'] }}
+                  </small>
+                }
+              </div>
+
+              <!-- Signature -->
+
+              <!-- ======================================================
+     SIGNATURE
+======================================================= -->
+
+              <div class="document-upload">
+                <div class="document-upload-title">
+                  <strong>
+                    Signature
+                    <span class="required">*</span>
+                  </strong>
+
+                  <small> JPG / PNG · Max 1 MB · Min 400 × 150 px </small>
+                </div>
+
+                @if (!signatureFile) {
+                  <label class="file-dropzone">
+                    <input
+                      type="file"
+                      accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                      (change)="onFileSelected($event, 'signature')"
+                    />
+
+                    <span class="upload-icon">↑</span>
+
+                    <span class="upload-text"> Choose signature </span>
+
+                    <span class="upload-hint"> Click to browse </span>
+                  </label>
+                } @else {
+                  <div class="selected-image-file">
+                    <!-- SIGNATURE PREVIEW -->
+
+                    @if (signaturePreviewUrl) {
+                      <div class="image-preview signature-preview">
+                        <img [src]="signaturePreviewUrl" alt="Applicant Signature" />
+                      </div>
+                    }
+
+                    <!-- FILE INFO -->
+
+                    <div class="selected-file-info">
+                      <strong>
+                        {{ signatureFileName }}
+                      </strong>
+
+                      <small> Signature selected </small>
+                    </div>
+
+                    <!-- REMOVE -->
+
+                    <button type="button" class="remove-file" (click)="removeFile('signature')">
+                      Remove
+                    </button>
+                  </div>
+                }
+
+                @if (fileErrors['signature']) {
+                  <small class="field-error">
+                    {{ fileErrors['signature'] }}
+                  </small>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-note">
+          <div class="note-icon">i</div>
+
+          <p>
+            Please make sure all uploaded documents are clear and readable. These documents will be
+            included with your final application.
+          </p>
+        </div>
+      }
+
+      <!-- ===================================================
+           STEP 5 - DECLARATION
+      ==================================================== -->
+
+      @if (currentStep === 5) {
+        <div class="section-header">
+          <div class="section-number">05</div>
+
+          <div>
+            <h2>Declaration & Confirmation</h2>
+
+            <p>Please read all declarations carefully before previewing your application.</p>
+          </div>
+        </div>
+
+        <div class="declaration-section">
+          <div class="declaration-card">
+            <div class="declaration-card-header">
+              <div class="declaration-icon">01</div>
+
+              <div>
+                <h3>Applicant Declaration</h3>
+
+                <p>Please read and confirm all the following statements.</p>
+              </div>
+            </div>
+
+            <div class="declaration-content">
+              @for (declaration of declarationPoints; track $index) {
+                <div class="declaration-point">
+                  <span class="declaration-number">
+                    {{ $index + 1 }}
+                  </span>
+
+                  <p>
+                    {{ declaration }}
+                  </p>
+                </div>
+              }
+            </div>
+
+            <label class="declaration-checkbox">
+              <input type="checkbox" formControlName="declarationAccepted" />
+
+              <span class="custom-checkbox"></span>
+
+              <span>
+                I have read, understood and agree to all the above declarations.
+                <b>*</b>
+              </span>
+            </label>
+
+            @if (isInvalid('declarationAccepted')) {
+              <small class="field-error declaration-error">
+                You must accept the declaration to continue.
+              </small>
+            }
+          </div>
+
+          <div class="confirmation-card">
+            <div class="confirmation-icon">✓</div>
+
+            <div>
+              <h3>Review Before Submission</h3>
+
+              <p>
+                After accepting the declaration, click
+                <strong>Preview Application</strong>
+                to review all information and uploaded documents. You can edit the application
+                before final submission.
+              </p>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- ===================================================
+           ACTIONS
+      ==================================================== -->
+
+      <div class="form-actions">
+        <!-- BACK -->
+        @if (currentStep > 1) {
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="previous()"
+            [disabled]="saving || submitting"
+          >
+            <span>←</span>
+            Back
+          </button>
+        } @else {
+          <div></div>
+        }
+
+        <!-- CONTINUE: STEPS 1–4 -->
+        @if (currentStep < totalSteps) {
+          <button type="submit" class="btn btn-primary" [disabled]="saving || submitting">
+            Continue
+            <span>→</span>
+          </button>
+        }
+
+        <!-- STEP 5 -->
+        @if (currentStep === totalSteps) {
+          <div class="final-actions">
+            <!-- PREVIEW -->
+            <button
+              type="button"
+              class="btn btn-secondary"
+              [disabled]="saving || submitting"
+              (click)="openPreview()"
+            >
+              <span>Preview Application</span>
+              <span>↗</span>
+            </button>
+
+            <!-- FINAL SUBMIT -->
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="saving || submitting"
+              (click)="finalSubmit()"
+            >
+              @if (submitting) {
+                <span>Submitting...</span>
+              } @else {
+                <span>Submit Application</span>
+                <span>✓</span>
+              }
+            </button>
+          </div>
+        }
+      </div>
+    </form>
+  </section>
+}

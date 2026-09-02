@@ -1,0 +1,123 @@
+<div class="app-shell">
+  <!-- =========================================================
+       HEADER
+  ========================================================== -->
+
+  <header class="site-header">
+    <div class="header-container">
+      <a routerLink="/" class="brand" aria-label="Techsche Campus">
+        <img [src]="site.logo" [alt]="site.companyName" class="brand-logo" />
+
+        <div class="brand-info">
+          <span class="brand-name">
+            {{ site.companyName }}
+          </span>
+
+          <span class="brand-line"></span>
+        </div>
+      </a>
+
+      @if (applicationNumber) {
+        <div class="application-info">
+          <span class="application-label"> Application No. </span>
+
+          <strong class="application-number">
+            {{ applicationNumber }}
+          </strong>
+        </div>
+      }
+    </div>
+  </header>
+
+  <!-- =========================================================
+       MAIN CONTENT
+  ========================================================== -->
+
+  <main class="main-content">
+    <router-outlet></router-outlet>
+  </main>
+
+  <!-- =========================================================
+       FOOTER
+  ========================================================== -->
+
+  <footer class="site-footer">
+    <div class="footer-container">
+      <!-- Brand -->
+
+      <div class="footer-brand">
+        <img [src]="site.logo" [alt]="site.companyName" class="footer-logo" />
+
+        <div class="footer-brand-content">
+          <h3>
+            {{ site.companyName }}
+          </h3>
+
+          <p>Practical learning. Real skills. Better careers.</p>
+        </div>
+      </div>
+
+      <!-- Contact -->
+
+      <div class="footer-contact">
+        <!-- Address -->
+
+        <div class="contact-item">
+          <div class="contact-icon">
+            <span>⌖</span>
+          </div>
+
+          <div class="contact-content">
+            <span class="contact-label"> Address </span>
+
+            <span class="contact-value">
+              {{ site.address }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Email -->
+
+        <div class="contact-item">
+          <div class="contact-icon">
+            <span>✉</span>
+          </div>
+
+          <div class="contact-content">
+            <span class="contact-label"> Email </span>
+
+            <a class="contact-value contact-link" [href]="'mailto:' + site.email">
+              {{ site.email }}
+            </a>
+          </div>
+        </div>
+
+        <!-- Phone -->
+
+        <div class="contact-item">
+          <div class="contact-icon">
+            <span>☎</span>
+          </div>
+
+          <div class="contact-content">
+            <span class="contact-label"> Phone </span>
+
+            <a class="contact-value contact-link" [href]="'tel:' + site.phone">
+              {{ site.phone }}
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Bottom -->
+
+    <div class="footer-bottom">
+      <div class="footer-bottom-container">
+        <p>© {{ currentYear }} {{ site.companyName }}. All rights reserved.</p>
+
+        <!-- <p class="footer-tagline">Admission Application</p> -->
+      </div>
+    </div>
+  </footer>
+</div>
