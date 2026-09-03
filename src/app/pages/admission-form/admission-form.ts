@@ -1,10 +1,13 @@
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
+
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { Router } from '@angular/router';
 
 import { AdmissionApiService } from '../../core/services/admission-api';
 import { ApplicationSessionService } from '../../core/services/application-session';
+import { EducationalQualification } from '../../core/models/education-qualification';
+import { environment } from '../../../environments/environment.development';
 
 @Component({
   selector: 'app-admission-form',
@@ -13,26 +16,45 @@ import { ApplicationSessionService } from '../../core/services/application-sessi
   templateUrl: './admission-form.html',
   styleUrl: './admission-form.scss',
 })
-export class AdmissionForm implements OnInit {
+export class AdmissionForm implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
-
   private readonly admissionApi = inject(AdmissionApiService);
-
   private readonly session = inject(ApplicationSessionService);
-
   private readonly router = inject(Router);
-
   private readonly cdr = inject(ChangeDetectorRef);
 
-  // ==========================================================
-  // STATE
-  // ==========================================================
+  // =========================================================
+  // LOADING STATES
+  // =========================================================
 
   loading = true;
 
+  /**
+   * General API saving state.
+   */
+  saving = false;
+
+  /**
+   * Dedicated Continue button loading state.
+   *
+   * This prevents the button from getting stuck in
+   * "Saving..." when an API request fails.
+   */
+  isSavingStep = false;
+
+  /**
+   * Final submit loading state.
+   */
   submitting = false;
 
-  saving = false;
+  /**
+   * Document upload state.
+   */
+  uploadingDocuments = false;
+
+  // =========================================================
+  // GENERAL STATE
+  // =========================================================
 
   errorMessage = '';
 
@@ -42,24 +64,22 @@ export class AdmissionForm implements OnInit {
 
   readonly totalSteps = 5;
 
-  // ==========================================================
+  uploadingDocumentType: string | null = null;
+
+  readonly uploadingTypes = new Set<string>();
+
+  // =========================================================
   // FILE STATE
-  // ==========================================================
+  // =========================================================
 
   qualificationFile: File | null = null;
-
   aadhaarFile: File | null = null;
-
   photoFile: File | null = null;
-
   signatureFile: File | null = null;
 
   qualificationFileName = '';
-
   aadhaarFileName = '';
-
   photoFileName = '';
-
   signatureFileName = '';
 
   fileErrors: Record<string, string> = {};
@@ -68,25 +88,29 @@ export class AdmissionForm implements OnInit {
 
   signaturePreviewUrl = '';
 
-  isSubmitting: boolean = false;
+  educationalQualifications: EducationalQualification[] | [] = [];
 
-  showSuccess: boolean = false;
+  existingDocuments: Record<string, any> = {};
 
-  submissionError = '';
-  // ==========================================================
+  existingQualificationFileUrl = '';
+  existingAadhaarFileUrl = '';
+  existingPhotoFileUrl = '';
+  existingSignatureFileUrl = '';
+
+  // =========================================================
   // DECLARATION
-  // ==========================================================
+  // =========================================================
 
   declarationPoints: string[] = [];
 
-  // ==========================================================
+  // =========================================================
   // FORM
-  // ==========================================================
+  // =========================================================
 
   readonly studentForm = this.fb.nonNullable.group({
-    // --------------------------------------------------------
-    // Student
-    // --------------------------------------------------------
+    // -------------------------------------------------------
+    // STEP 1 - STUDENT
+    // -------------------------------------------------------
 
     fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
 
@@ -94,9 +118,9 @@ export class AdmissionForm implements OnInit {
 
     mobile: ['', [Validators.required, Validators.pattern(/^[6-9]\d{9}$/)]],
 
-    // --------------------------------------------------------
-    // Parent
-    // --------------------------------------------------------
+    // -------------------------------------------------------
+    // STEP 2 - PARENT / GUARDIAN
+    // -------------------------------------------------------
 
     fatherName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
 
@@ -106,9 +130,9 @@ export class AdmissionForm implements OnInit {
 
     motherMobile: ['', [Validators.required, Validators.pattern(/^[6-9]\d{9}$/)]],
 
-    // --------------------------------------------------------
-    // Current Address
-    // --------------------------------------------------------
+    // -------------------------------------------------------
+    // STEP 3 - CURRENT ADDRESS
+    // -------------------------------------------------------
 
     currentAddressLine1: ['', [Validators.required, Validators.maxLength(150)]],
 
@@ -122,11 +146,15 @@ export class AdmissionForm implements OnInit {
 
     currentPincode: ['', [Validators.required, Validators.pattern(/^[1-9][0-9]{5}$/)]],
 
-    // --------------------------------------------------------
-    // Permanent Address
-    // --------------------------------------------------------
+    // -------------------------------------------------------
+    // SAME ADDRESS
+    // -------------------------------------------------------
 
     sameAddress: [false],
+
+    // -------------------------------------------------------
+    // PERMANENT ADDRESS
+    // -------------------------------------------------------
 
     permanentAddressLine1: ['', [Validators.required, Validators.maxLength(150)]],
 
@@ -140,9 +168,9 @@ export class AdmissionForm implements OnInit {
 
     permanentPincode: ['', [Validators.required, Validators.pattern(/^[1-9][0-9]{5}$/)]],
 
-    // --------------------------------------------------------
-    // Education & Documents
-    // --------------------------------------------------------
+    // -------------------------------------------------------
+    // STEP 4 - EDUCATION
+    // -------------------------------------------------------
 
     highestQualification: ['', Validators.required],
 
@@ -154,46 +182,105 @@ export class AdmissionForm implements OnInit {
 
     signature: this.fb.control<File | null>(null, Validators.required),
 
-    // --------------------------------------------------------
-    // Declaration
-    // --------------------------------------------------------
+    // -------------------------------------------------------
+    // STEP 5 - DECLARATION
+    // -------------------------------------------------------
 
     declarationAccepted: [false, Validators.requiredTrue],
   });
 
-  // ==========================================================
+  // =========================================================
   // INIT
-  // ==========================================================
+  // =========================================================
 
   ngOnInit(): void {
     this.declarationPoints = this.session.declarationPoints;
+
+    this.loadEducationalQualifications();
 
     this.initializeApplication();
 
     this.setupAddressSync();
   }
 
-  // ==========================================================
+  // =========================================================
+  // Educational Qualifications List
+  // =========================================================
+
+  private loadEducationalQualifications(): void {
+    this.admissionApi.getEducationalQualifications().subscribe({
+      next: (response) => {
+        this.educationalQualifications = Array.isArray(response) ? response : (response ?? []);
+      },
+
+      error: (error) => {
+        this.educationalQualifications = [];
+
+        this.errorMessage = 'Unable to load educational qualifications. Please refresh the page.';
+      },
+    });
+  }
+
+  // =========================================================
   // APPLICATION INITIALIZATION
-  // ==========================================================
+  // =========================================================
 
   initializeApplication(): void {
-    if (this.session.hasActiveSession()) {
-      this.applicationNumber = this.session.applicationNumber!;
+    this.errorMessage = '';
 
-      this.loading = false;
+    /*
+     * Existing application
+     */
+    if (this.session.hasActiveSession()) {
+      this.applicationNumber = this.session.applicationNumber ?? '';
 
       this.updateUrl();
+
+      this.loadExistingApplication();
 
       return;
     }
 
+    /*
+     * New application
+     */
     this.createApplication();
   }
 
-  // ==========================================================
+  // =========================================================
+  // LOAD EXISTING APPLICATION
+  // =========================================================
+
+  private loadExistingApplication(): void {
+    this.loading = true;
+
+    this.admissionApi.getApplication(this.session.applicationId!).subscribe({
+      next: (response) => {
+        const data = response?.data ?? response;
+
+        if (data) {
+          this.populateForm(data);
+        }
+
+        this.loading = false;
+
+        this.cdr.detectChanges();
+      },
+
+      error: (error) => {
+        this.loading = false;
+
+        this.errorMessage =
+          error?.error?.detail || 'Unable to load your application. Please try again.';
+
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  // =========================================================
   // CREATE APPLICATION
-  // ==========================================================
+  // =========================================================
 
   private createApplication(): void {
     this.loading = true;
@@ -203,37 +290,194 @@ export class AdmissionForm implements OnInit {
     this.admissionApi.startApplication().subscribe({
       next: (response) => {
         if (
-          !response.success ||
-          !response.data?.application_number ||
-          !response.data?.access_token
+          !response?.success ||
+          !response?.data?.id ||
+          !response?.data?.application_number ||
+          !response?.data?.access_token
         ) {
           this.loading = false;
 
           this.errorMessage = 'Unable to create your application.';
 
+          this.cdr.detectChanges();
+
           return;
         }
 
-        this.session.setSession(response.data.application_number, response.data.access_token);
+        this.session.setSession(
+          response.data.id,
+          response.data.application_number,
+          response.data.access_token,
+        );
 
         this.applicationNumber = response.data.application_number;
 
         this.loading = false;
 
         this.updateUrl();
+
+        this.cdr.detectChanges();
       },
 
       error: (error) => {
         this.loading = false;
 
-        this.errorMessage = 'Unable to connect to the admission server. Please try again.';
+        this.errorMessage =
+          error?.error?.detail || 'Unable to connect to the admission server. Please try again.';
+
+        this.cdr.detectChanges();
       },
     });
   }
 
-  // ==========================================================
-  // URL
-  // ==========================================================
+  // =========================================================
+  // POPULATE FORM
+  // =========================================================
+
+  private populateForm(data: any): void {
+    const currentAddress = data?.current_address ?? null;
+    const permanentAddress = data?.permanent_address ?? null;
+    const education = data?.education ?? null;
+
+    const highestQualification =
+      education?.highest_qualification?.id ??
+      data?.highest_qualification?.id ??
+      data?.highest_qualification ??
+      '';
+
+    this.studentForm.patchValue(
+      {
+        fullName: data?.full_name ?? '',
+        email: data?.email ?? '',
+        mobile: data?.mobile ?? '',
+
+        fatherName: data?.father_name ?? '',
+        fatherMobile: data?.father_mobile ?? '',
+        motherName: data?.mother_name ?? '',
+        motherMobile: data?.mother_mobile ?? '',
+
+        currentAddressLine1: currentAddress?.address_line1 ?? '',
+        currentAddressLine2: currentAddress?.address_line2 ?? '',
+        currentCity: currentAddress?.city ?? '',
+        currentDistrict: currentAddress?.district ?? '',
+        currentState: currentAddress?.state ?? '',
+        currentPincode: currentAddress?.pincode ?? '',
+
+        permanentAddressLine1: permanentAddress?.address_line1 ?? '',
+        permanentAddressLine2: permanentAddress?.address_line2 ?? '',
+        permanentCity: permanentAddress?.city ?? '',
+        permanentDistrict: permanentAddress?.district ?? '',
+        permanentState: permanentAddress?.state ?? '',
+        permanentPincode: permanentAddress?.pincode ?? '',
+
+        sameAddress: data?.same_address ?? false,
+
+        highestQualification,
+
+        declarationAccepted: data?.declaration_accepted ?? false,
+      },
+      {
+        emitEvent: false,
+      },
+    );
+
+    // Restore existing documents from API
+    this.restoreExistingDocuments(data);
+
+    if (this.studentForm.controls.sameAddress.value) {
+      this.copyCurrentToPermanent();
+      this.disablePermanentAddress();
+    } else {
+      this.enablePermanentAddress();
+    }
+
+    this.studentForm.markAsPristine();
+
+    this.cdr.detectChanges();
+  }
+
+  private restoreExistingDocuments(data: any): void {
+    const documents = Array.isArray(data?.documents) ? data.documents : [];
+
+    this.existingDocuments = {};
+
+    this.existingQualificationFileUrl = '';
+    this.existingAadhaarFileUrl = '';
+    this.existingPhotoFileUrl = '';
+    this.existingSignatureFileUrl = '';
+
+    // Existing server files are NOT browser File objects.
+    this.qualificationFile = null;
+    this.aadhaarFile = null;
+    this.photoFile = null;
+    this.signatureFile = null;
+
+    this.photoPreviewUrl = '';
+    this.signaturePreviewUrl = '';
+
+    const backendUrl = environment.backEndUrl;
+
+    for (const document of documents) {
+      const type = document?.document_type;
+      const fileUrl = document?.file;
+
+      if (!type || !fileUrl) {
+        continue;
+      }
+
+      this.existingDocuments[type] = document;
+
+      const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${backendUrl}${fileUrl}`;
+
+      switch (type) {
+        case 'qualification':
+          this.existingQualificationFileUrl = fullUrl;
+
+          this.qualificationFileName = this.getFileName(fileUrl);
+
+          break;
+
+        case 'aadhaar':
+          this.existingAadhaarFileUrl = fullUrl;
+
+          this.aadhaarFileName = this.getFileName(fileUrl);
+
+          break;
+
+        case 'photo':
+          this.existingPhotoFileUrl = fullUrl;
+
+          this.photoPreviewUrl = fullUrl;
+
+          this.photoFileName = this.getFileName(fileUrl);
+
+          break;
+
+        case 'signature':
+          this.existingSignatureFileUrl = fullUrl;
+
+          this.signaturePreviewUrl = fullUrl;
+
+          this.signatureFileName = this.getFileName(fileUrl);
+
+          break;
+      }
+    }
+
+    this.cdr.detectChanges();
+  }
+
+  private getFileName(url: string): string {
+    try {
+      return decodeURIComponent(url.split('/').pop()?.split('?')[0] ?? '');
+    } catch {
+      return url.split('/').pop()?.split('?')[0] ?? '';
+    }
+  }
+
+  // =========================================================
+  // UPDATE URL
+  // =========================================================
 
   private updateUrl(): void {
     if (!this.applicationNumber) {
@@ -247,9 +491,9 @@ export class AdmissionForm implements OnInit {
     }
   }
 
-  // ==========================================================
-  // FORM HELPER
-  // ==========================================================
+  // =========================================================
+  // INVALID CONTROL
+  // =========================================================
 
   isInvalid(controlName: string): boolean {
     const control = this.studentForm.get(controlName);
@@ -257,9 +501,9 @@ export class AdmissionForm implements OnInit {
     return !!(control && control.invalid && (control.dirty || control.touched));
   }
 
-  // ==========================================================
+  // =========================================================
   // ADDRESS SYNC
-  // ==========================================================
+  // =========================================================
 
   private setupAddressSync(): void {
     const sameAddressControl = this.studentForm.controls.sameAddress;
@@ -275,30 +519,20 @@ export class AdmissionForm implements OnInit {
         this.enablePermanentAddress();
 
         current.permanentAddressLine1.reset();
-
         current.permanentAddressLine2.reset();
-
         current.permanentCity.reset();
-
         current.permanentDistrict.reset();
-
         current.permanentState.reset();
-
         current.permanentPincode.reset();
       }
     });
 
     const currentAddressFields = [
       'currentAddressLine1',
-
       'currentAddressLine2',
-
       'currentCity',
-
       'currentDistrict',
-
       'currentState',
-
       'currentPincode',
     ];
 
@@ -315,37 +549,39 @@ export class AdmissionForm implements OnInit {
     }
   }
 
+  // =========================================================
+  // DISABLE PERMANENT ADDRESS
+  // =========================================================
+
   private disablePermanentAddress(): void {
     const controls = this.studentForm.controls;
 
     controls.permanentAddressLine1.disable();
-
     controls.permanentAddressLine2.disable();
-
     controls.permanentCity.disable();
-
     controls.permanentDistrict.disable();
-
     controls.permanentState.disable();
-
     controls.permanentPincode.disable();
   }
+
+  // =========================================================
+  // ENABLE PERMANENT ADDRESS
+  // =========================================================
 
   private enablePermanentAddress(): void {
     const controls = this.studentForm.controls;
 
     controls.permanentAddressLine1.enable();
-
     controls.permanentAddressLine2.enable();
-
     controls.permanentCity.enable();
-
     controls.permanentDistrict.enable();
-
     controls.permanentState.enable();
-
     controls.permanentPincode.enable();
   }
+
+  // =========================================================
+  // COPY ADDRESS
+  // =========================================================
 
   private copyCurrentToPermanent(): void {
     const controls = this.studentForm.controls;
@@ -375,9 +611,9 @@ export class AdmissionForm implements OnInit {
     });
   }
 
-  // ==========================================================
+  // =========================================================
   // FILE VALIDATION
-  // ==========================================================
+  // =========================================================
 
   private validateFile(file: File, allowedTypes: string[], maxSizeMB: number): string | null {
     if (!allowedTypes.includes(file.type)) {
@@ -393,61 +629,9 @@ export class AdmissionForm implements OnInit {
     return null;
   }
 
-  // ==========================================================
-  // IMAGE DIMENSIONS
-  // ==========================================================
-
-  private validateImageDimensions(
-    file: File,
-    minWidth: number,
-    minHeight: number,
-    maxWidth: number,
-    maxHeight: number,
-  ): Promise<string | null> {
-    return new Promise((resolve) => {
-      const image = new Image();
-
-      const objectUrl = URL.createObjectURL(file);
-
-      image.onload = () => {
-        URL.revokeObjectURL(objectUrl);
-
-        if (image.width < minWidth || image.height < minHeight) {
-          resolve(`Image must be at least ${minWidth} × ${minHeight}px.`);
-
-          return;
-        }
-
-        if (image.width > maxWidth || image.height > maxHeight) {
-          resolve(`Image must not exceed ${maxWidth} × ${maxHeight}px.`);
-
-          return;
-        }
-
-        resolve(null);
-      };
-
-      image.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-
-        resolve('Unable to read this image.');
-      };
-
-      image.src = objectUrl;
-    });
-  }
-
-  // ==========================================================
-  // FILE SELECTION
-  // ==========================================================
-
-  // ==========================================================
-  // FILE SELECTION
-  // ==========================================================
-
-  // ==========================================================
-  // FILE SELECTION
-  // ==========================================================
+  // =========================================================
+  // FILE SELECT
+  // =========================================================
 
   async onFileSelected(
     event: Event,
@@ -462,9 +646,9 @@ export class AdmissionForm implements OnInit {
 
     this.fileErrors[type] = '';
 
-    // ========================================================
+    // -------------------------------------------------------
     // QUALIFICATION
-    // ========================================================
+    // -------------------------------------------------------
 
     if (type === 'qualification') {
       const error = this.validateFile(file, ['application/pdf', 'image/jpeg', 'image/png'], 10);
@@ -478,16 +662,20 @@ export class AdmissionForm implements OnInit {
       this.qualificationFile = file;
       this.qualificationFileName = file.name;
 
-      this.studentForm.controls.qualificationCertificate.setValue(file);
-      this.studentForm.controls.qualificationCertificate.markAsTouched();
-      this.studentForm.controls.qualificationCertificate.markAsDirty();
+      const control = this.studentForm.controls.qualificationCertificate;
 
+      control.setValue(file);
+      control.markAsTouched();
+      control.markAsDirty();
+      control.updateValueAndValidity();
+
+      this.cdr.detectChanges();
       return;
     }
 
-    // ========================================================
+    // -------------------------------------------------------
     // AADHAAR
-    // ========================================================
+    // -------------------------------------------------------
 
     if (type === 'aadhaar') {
       const error = this.validateFile(file, ['application/pdf', 'image/jpeg', 'image/png'], 10);
@@ -501,19 +689,23 @@ export class AdmissionForm implements OnInit {
       this.aadhaarFile = file;
       this.aadhaarFileName = file.name;
 
-      this.studentForm.controls.aadhaar.setValue(file);
-      this.studentForm.controls.aadhaar.markAsTouched();
-      this.studentForm.controls.aadhaar.markAsDirty();
+      const control = this.studentForm.controls.aadhaar;
 
+      control.setValue(file);
+      control.markAsTouched();
+      control.markAsDirty();
+      control.updateValueAndValidity();
+
+      this.cdr.detectChanges();
       return;
     }
 
-    // ========================================================
+    // -------------------------------------------------------
     // PHOTO
-    // ========================================================
+    // -------------------------------------------------------
 
     if (type === 'photo') {
-      const error = this.validateFile(file, ['image/jpeg', 'image/png'], 2);
+      const error = this.validateFile(file, ['image/jpeg', 'image/png'], 10);
 
       if (error) {
         this.fileErrors[type] = error;
@@ -521,51 +713,33 @@ export class AdmissionForm implements OnInit {
         return;
       }
 
-      const dimensionError = await this.validateImageDimensions(file, 300, 400, 2000, 2000);
-
-      if (dimensionError) {
-        this.fileErrors[type] = dimensionError;
-        input.value = '';
-        return;
+      // Revoke previous preview URL
+      if (this.photoPreviewUrl) {
+        URL.revokeObjectURL(this.photoPreviewUrl);
       }
 
-      // --------------------------------------------------------
-      // Everything below happens AFTER the async validation.
-      // Defer it to the next browser task.
-      // --------------------------------------------------------
+      this.photoFile = file;
+      this.photoFileName = file.name;
 
-      setTimeout(() => {
-        // Remove old preview
-        if (this.photoPreviewUrl) {
-          URL.revokeObjectURL(this.photoPreviewUrl);
-        }
+      const control = this.studentForm.controls.photo;
 
-        // Store file
-        this.photoFile = file;
-        this.photoFileName = file.name;
+      control.setValue(file);
+      control.markAsTouched();
+      control.markAsDirty();
+      control.updateValueAndValidity();
 
-        // Update form
-        const control = this.studentForm.controls.photo;
+      this.photoPreviewUrl = URL.createObjectURL(file);
 
-        control.setValue(file);
-        control.markAsTouched();
-        control.markAsDirty();
-        control.updateValueAndValidity();
-
-        // Create preview
-        this.photoPreviewUrl = URL.createObjectURL(file);
-      }, 0);
       this.cdr.detectChanges();
-
       return;
     }
 
-    // ========================================================
+    // -------------------------------------------------------
     // SIGNATURE
-    // ========================================================
+    // -------------------------------------------------------
 
     if (type === 'signature') {
-      const error = this.validateFile(file, ['image/jpeg', 'image/png'], 1);
+      const error = this.validateFile(file, ['image/jpeg', 'image/png'], 10);
 
       if (error) {
         this.fileErrors[type] = error;
@@ -573,52 +747,40 @@ export class AdmissionForm implements OnInit {
         return;
       }
 
-      const dimensionError = await this.validateImageDimensions(file, 400, 150, 2000, 1000);
-
-      if (dimensionError) {
-        this.fileErrors[type] = dimensionError;
-        input.value = '';
-        return;
+      // Revoke previous preview URL
+      if (this.signaturePreviewUrl) {
+        URL.revokeObjectURL(this.signaturePreviewUrl);
       }
 
-      // --------------------------------------------------------
-      // Defer state/form changes
-      // --------------------------------------------------------
+      this.signatureFile = file;
+      this.signatureFileName = file.name;
 
-      setTimeout(() => {
-        // Remove old preview
-        if (this.signaturePreviewUrl) {
-          URL.revokeObjectURL(this.signaturePreviewUrl);
-          // this.signaturePreviewUrl = null;
-        }
+      const control = this.studentForm.controls.signature;
 
-        // Store file
-        this.signatureFile = file;
-        this.signatureFileName = file.name;
+      control.setValue(file);
+      control.markAsTouched();
+      control.markAsDirty();
+      control.updateValueAndValidity();
 
-        // Update form
-        const control = this.studentForm.controls.signature;
-
-        control.setValue(file);
-        control.markAsTouched();
-        control.markAsDirty();
-        control.updateValueAndValidity();
-
-        // Create preview
-        this.signaturePreviewUrl = URL.createObjectURL(file);
-      }, 0);
+      this.signaturePreviewUrl = URL.createObjectURL(file);
 
       this.cdr.detectChanges();
-
       return;
     }
   }
 
-  // ==========================================================
+  // =========================================================
   // REMOVE FILE
-  // ==========================================================
+  // =========================================================
 
   removeFile(type: 'qualification' | 'aadhaar' | 'photo' | 'signature'): void {
+    /*
+     * Do not allow removing a file while it is uploading.
+     */
+    if (this.uploadingTypes.has(type)) {
+      return;
+    }
+
     this.fileErrors[type] = '';
 
     switch (type) {
@@ -629,6 +791,10 @@ export class AdmissionForm implements OnInit {
 
         this.studentForm.controls.qualificationCertificate.setValue(null);
 
+        this.studentForm.controls.qualificationCertificate.markAsDirty();
+
+        this.studentForm.controls.qualificationCertificate.updateValueAndValidity();
+
         break;
 
       case 'aadhaar':
@@ -638,19 +804,27 @@ export class AdmissionForm implements OnInit {
 
         this.studentForm.controls.aadhaar.setValue(null);
 
+        this.studentForm.controls.aadhaar.markAsDirty();
+
+        this.studentForm.controls.aadhaar.updateValueAndValidity();
+
         break;
 
       case 'photo':
         if (this.photoPreviewUrl) {
           URL.revokeObjectURL(this.photoPreviewUrl);
+
           this.photoPreviewUrl = '';
         }
 
         this.photoFile = null;
+
         this.photoFileName = '';
 
         this.studentForm.controls.photo.setValue(null);
+
         this.studentForm.controls.photo.markAsDirty();
+
         this.studentForm.controls.photo.updateValueAndValidity();
 
         break;
@@ -658,28 +832,67 @@ export class AdmissionForm implements OnInit {
       case 'signature':
         if (this.signaturePreviewUrl) {
           URL.revokeObjectURL(this.signaturePreviewUrl);
+
           this.signaturePreviewUrl = '';
         }
 
         this.signatureFile = null;
+
         this.signatureFileName = '';
 
         this.studentForm.controls.signature.setValue(null);
+
         this.studentForm.controls.signature.markAsDirty();
+
         this.studentForm.controls.signature.updateValueAndValidity();
 
         break;
     }
+
+    this.cdr.detectChanges();
   }
 
-  // ==========================================================
-  // CONTINUE / PREVIEW
-  // ==========================================================
+  // -------------------------------------------------------
+  // Validate Document
+  // -------------------------------------------------------
 
+  private validateDocuments(): boolean {
+    let valid = true;
+
+    this.fileErrors = {};
+
+    if (!this.qualificationFile && !this.existingQualificationFileUrl) {
+      this.fileErrors['qualification'] = 'Qualification certificate is required.';
+      valid = false;
+    }
+
+    if (!this.aadhaarFile && !this.existingAadhaarFileUrl) {
+      this.fileErrors['aadhaar'] = 'Aadhaar document is required.';
+      valid = false;
+    }
+
+    if (!this.photoFile && !this.existingPhotoFileUrl) {
+      this.fileErrors['photo'] = 'Passport size photo is required.';
+      valid = false;
+    }
+
+    if (!this.signatureFile && !this.existingSignatureFileUrl) {
+      this.fileErrors['signature'] = 'Signature is required.';
+      valid = false;
+    }
+
+    return valid;
+  }
+
+  // =========================================================
+  // CONTINUE
+  // =========================================================
   continue(): void {
-    // --------------------------------------------------------
-    // STEP VALIDATION
-    // --------------------------------------------------------
+    if (this.isSavingStep || this.submitting || this.uploadingDocuments) {
+      return;
+    }
+
+    this.errorMessage = '';
 
     const controlsByStep: Record<number, string[]> = {
       1: ['fullName', 'email', 'mobile'],
@@ -700,7 +913,7 @@ export class AdmissionForm implements OnInit {
         'permanentPincode',
       ],
 
-      4: ['highestQualification', 'qualificationCertificate', 'aadhaar', 'photo', 'signature'],
+      4: ['highestQualification'],
 
       5: ['declarationAccepted'],
     };
@@ -709,154 +922,542 @@ export class AdmissionForm implements OnInit {
 
     let valid = true;
 
+    // -------------------------------------------------------
+    // NORMAL FORM VALIDATION
+    // -------------------------------------------------------
+
     for (const controlName of controls) {
       const control = this.studentForm.get(controlName);
 
-      if (!control) {
-        continue;
-      }
-
-      if (control.invalid) {
+      if (control?.invalid) {
         control.markAsTouched();
         valid = false;
       }
     }
 
-    // --------------------------------------------------------
-    // STOP IF CURRENT STEP IS INVALID
-    // --------------------------------------------------------
+    // -------------------------------------------------------
+    // DOCUMENT VALIDATION
+    // -------------------------------------------------------
+
+    if (this.currentStep === 4) {
+      if (!this.validateDocuments()) {
+        valid = false;
+      }
+    }
+
+    // -------------------------------------------------------
+    // STOP IF INVALID
+    // -------------------------------------------------------
 
     if (!valid) {
+      this.cdr.detectChanges();
       return;
     }
 
-    // --------------------------------------------------------
-    // SAVE CURRENT FORM DATA
-    // --------------------------------------------------------
+    // -------------------------------------------------------
+    // SAVE FORM DATA
+    // -------------------------------------------------------
 
     this.session.setFormData(this.studentForm.getRawValue());
 
-    // --------------------------------------------------------
-    // STEP 5 = OPEN PREVIEW
-    // --------------------------------------------------------
+    // -------------------------------------------------------
+    // STEP 4
+    // -------------------------------------------------------
+
+    if (this.currentStep === 4) {
+      this.saveStep4AndContinue();
+      return;
+    }
+
+    // -------------------------------------------------------
+    // STEP 5
+    // -------------------------------------------------------
 
     if (this.currentStep === 5) {
       this.openPreview();
       return;
     }
 
-    // --------------------------------------------------------
-    // NEXT STEP
-    // --------------------------------------------------------
+    // -------------------------------------------------------
+    // OTHER STEPS
+    // -------------------------------------------------------
 
-    if (this.currentStep < this.totalSteps) {
+    this.saveFormDataAndContinue();
+  }
+
+  // =========================================================
+  // SAVE STEP 1-3
+  // =========================================================
+
+  private saveFormDataAndContinue(): void {
+    /*
+     * IMPORTANT:
+     *
+     * Set the dedicated loader BEFORE API call.
+     */
+    this.isSavingStep = true;
+
+    this.saving = true;
+
+    this.errorMessage = '';
+
+    const payload = this.getCurrentStepPayload();
+
+    this.cdr.detectChanges();
+
+    this.session.updateApplication(payload).subscribe({
+      next: () => {
+        /*
+         * ALWAYS reset loader first.
+         */
+        this.isSavingStep = false;
+
+        this.saving = false;
+
+        this.currentStep++;
+
+        this.cdr.detectChanges();
+      },
+
+      error: (error) => {
+        /*
+         * CRITICAL:
+         *
+         * Reset BOTH states when API fails.
+         */
+        this.isSavingStep = false;
+
+        this.saving = false;
+
+        this.errorMessage =
+          error?.error?.detail || 'Unable to save your application. Please try again.';
+
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  // =========================================================
+  // STEP 4 SAVE + UPLOAD
+  // =========================================================
+
+  private saveStep4AndContinue(): void {
+    this.isSavingStep = true;
+
+    this.saving = true;
+
+    this.errorMessage = '';
+
+    const value = this.studentForm.getRawValue();
+
+    const qualification = this.qualificationFile;
+
+    const aadhaar = this.aadhaarFile;
+
+    const photo = this.photoFile;
+
+    const signature = this.signatureFile;
+
+    this.cdr.detectChanges();
+
+    this.session
+      .updateApplication({
+        highest_qualification: value.highestQualification,
+      })
+      .subscribe({
+        next: () => {
+          /*
+           * Database save completed.
+           *
+           * Continue button remains in loading state
+           * while documents upload.
+           */
+          this.saving = false;
+
+          this.uploadAllDocuments(qualification, aadhaar, photo, signature);
+        },
+
+        error: (error) => {
+          this.isSavingStep = false;
+
+          this.saving = false;
+
+          this.uploadingDocuments = false;
+
+          this.errorMessage =
+            error?.error?.detail || 'Unable to save your qualification. Please try again.';
+
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  // =========================================================
+  // UPLOAD DOCUMENTS
+  // =========================================================
+
+  private uploadAllDocuments(
+    qualification: File | null,
+    aadhaar: File | null,
+    photo: File | null,
+    signature: File | null,
+  ): void {
+    const uploads = [
+      {
+        type: 'qualification',
+        file: qualification,
+      },
+
+      {
+        type: 'aadhaar',
+        file: aadhaar,
+      },
+
+      {
+        type: 'photo',
+        file: photo,
+      },
+
+      {
+        type: 'signature',
+        file: signature,
+      },
+    ].filter(
+      (
+        item,
+      ): item is {
+        type: string;
+        file: File;
+      } => item.file !== null,
+    );
+
+    if (uploads.length === 0) {
+      this.uploadingDocuments = false;
+
+      this.saving = false;
+
+      this.isSavingStep = false;
+
       this.currentStep++;
+
+      this.cdr.detectChanges();
+
+      return;
+    }
+
+    /*
+     * Start document uploading.
+     */
+    this.uploadingDocuments = true;
+
+    this.saving = true;
+
+    this.isSavingStep = true;
+
+    this.errorMessage = '';
+
+    this.uploadingTypes.clear();
+
+    for (const upload of uploads) {
+      this.uploadingTypes.add(upload.type);
+    }
+
+    this.cdr.detectChanges();
+
+    let completed = 0;
+
+    let failed = false;
+
+    for (const upload of uploads) {
+      this.uploadingDocumentType = upload.type;
+
+      this.session.uploadDocument(upload.type, upload.file).subscribe({
+        next: () => {
+          completed++;
+
+          this.uploadingTypes.delete(upload.type);
+
+          /*
+           * All documents uploaded.
+           */
+          if (completed === uploads.length) {
+            this.uploadingDocuments = false;
+
+            this.saving = false;
+
+            this.isSavingStep = false;
+
+            this.uploadingDocumentType = null;
+
+            this.currentStep++;
+
+            this.cdr.detectChanges();
+
+            return;
+          }
+
+          this.cdr.detectChanges();
+        },
+
+        error: (error) => {
+          /*
+           * Prevent multiple error handlers
+           * from resetting the state repeatedly.
+           */
+          if (failed) {
+            return;
+          }
+
+          failed = true;
+
+          this.uploadingDocuments = false;
+
+          this.saving = false;
+
+          this.isSavingStep = false;
+
+          this.uploadingTypes.clear();
+
+          this.uploadingDocumentType = null;
+
+          this.errorMessage =
+            error?.error?.detail || `Unable to upload ${upload.type}. Please try again.`;
+
+          this.cdr.detectChanges();
+        },
+      });
     }
   }
 
-  // ==========================================================
+  // =========================================================
+  // DOCUMENT UPLOAD CHECK
+  // =========================================================
+
+  isDocumentUploading(type: string): boolean {
+    return this.uploadingTypes.has(type);
+  }
+
+  // =========================================================
   // PREVIOUS
-  // ==========================================================
+  // =========================================================
 
   previous(): void {
+    if (this.isSavingStep || this.submitting || this.uploadingDocuments) {
+      return;
+    }
+
     if (this.currentStep > 1) {
       this.currentStep--;
+
+      this.errorMessage = '';
+
+      this.cdr.detectChanges();
     }
   }
 
-  // ==========================================================
-  // PREVIEW
-  // ==========================================================
+  // =========================================================
+  // STEP PAYLOAD
+  // =========================================================
 
+  private getCurrentStepPayload(): any {
+    const value = this.studentForm.getRawValue();
+
+    switch (this.currentStep) {
+      // -----------------------------------------------------
+      // STEP 1
+      // -----------------------------------------------------
+
+      case 1:
+        return {
+          full_name: value.fullName,
+
+          email: value.email,
+
+          mobile: value.mobile,
+        };
+
+      // -----------------------------------------------------
+      // STEP 2
+      // -----------------------------------------------------
+
+      case 2:
+        return {
+          father_name: value.fatherName,
+
+          father_mobile: value.fatherMobile,
+
+          mother_name: value.motherName,
+
+          mother_mobile: value.motherMobile,
+        };
+
+      // -----------------------------------------------------
+      // STEP 3
+      // -----------------------------------------------------
+
+      case 3:
+        return {
+          current_address_line1: value.currentAddressLine1,
+
+          current_address_line2: value.currentAddressLine2,
+
+          current_city: value.currentCity,
+
+          current_district: value.currentDistrict,
+
+          current_state: value.currentState,
+
+          current_pincode: value.currentPincode,
+
+          permanent_address_line1: value.permanentAddressLine1,
+
+          permanent_address_line2: value.permanentAddressLine2,
+
+          permanent_city: value.permanentCity,
+
+          permanent_district: value.permanentDistrict,
+
+          permanent_state: value.permanentState,
+
+          permanent_pincode: value.permanentPincode,
+
+          same_address: value.sameAddress,
+        };
+
+      // -----------------------------------------------------
+      // STEP 4
+      // -----------------------------------------------------
+
+      case 4:
+        return {
+          highest_qualification: value.highestQualification,
+        };
+
+      // -----------------------------------------------------
+      // STEP 5
+      // -----------------------------------------------------
+
+      case 5:
+        return {
+          declaration_accepted: value.declarationAccepted,
+        };
+
+      default:
+        return {};
+    }
+  }
+
+  // =========================================================
+  // PREVIEW
+  // =========================================================
   async openPreview(): Promise<void> {
-    // Save form fields
+    if (this.isSavingStep || this.submitting || this.uploadingDocuments) {
+      return;
+    }
+
+    this.errorMessage = '';
+
+    // Save the latest form state in session
     this.session.setFormData(this.studentForm.getRawValue());
 
-    // Save uploaded files
-    await this.session.setFiles({
-      qualification: this.qualificationFile,
-      aadhaar: this.aadhaarFile,
-      photo: this.photoFile,
-      signature: this.signatureFile,
-    });
+    // Navigate to preview page
+    const url = this.router.serializeUrl(
+      this.router.createUrlTree(['/', this.applicationNumber, 'preview']),
+    );
 
-    // Open preview only AFTER IndexedDB save is complete
-    window.open(`/${this.applicationNumber}/preview`, '_blank');
+    window.open(url, '_blank');
   }
 
-  // ==========================================================
-  // Final Submit
-  // ==========================================================
+  // =========================================================
+  // FINAL SUBMIT
+  // =========================================================
 
-  async finalSubmit(): Promise<void> {
-    if (this.submitting) {
+  finalSubmit(): void {
+    if (this.submitting || this.isSavingStep || this.uploadingDocuments) {
       return;
     }
 
-    if (!this.studentForm.controls.declarationAccepted.value) {
-      this.studentForm.controls.declarationAccepted.markAsTouched();
+    const declaration = this.studentForm.controls.declarationAccepted;
+
+    // ---------------------------------------------------------
+    // VALIDATE DECLARATION
+    // ---------------------------------------------------------
+
+    if (!declaration.value) {
+      declaration.markAsTouched();
+
+      this.cdr.detectChanges();
+
       return;
     }
+
+    // ---------------------------------------------------------
+    // START SUBMISSION
+    // ---------------------------------------------------------
 
     this.submitting = true;
     this.errorMessage = '';
 
-    try {
-      const formValue = this.studentForm.getRawValue();
+    this.cdr.detectChanges();
 
-      // Your existing FormData creation
-      const payload = new FormData();
+    // ---------------------------------------------------------
+    // SAVE DECLARATION FIRST
+    // ---------------------------------------------------------
 
-      payload.append('full_name', formValue.fullName);
-      payload.append('email', formValue.email);
-      payload.append('mobile', formValue.mobile);
+    this.session
+      .updateApplication({
+        declaration_accepted: true,
+      })
+      .subscribe({
+        next: () => {
+          // -----------------------------------------------------
+          // SUBMIT APPLICATION
+          // -----------------------------------------------------
 
-      if (this.qualificationFile) {
-        payload.append(
-          'qualification_certificate',
-          this.qualificationFile,
-          this.qualificationFile.name,
-        );
-      }
+          this.session.submitApplication().subscribe({
+            next: (response) => {
+              this.submitting = false;
+              this.cdr.detectChanges();
+              if (response) {
+                // Save number before clearing session
+                const submittedApplicationNumber = this.applicationNumber;
 
-      if (this.aadhaarFile) {
-        payload.append('aadhaar', this.aadhaarFile, this.aadhaarFile.name);
-      }
+                // ---------------------------------------------------
+                // CLEAR CURRENT APPLICATION SESSION
+                // ---------------------------------------------------
 
-      if (this.photoFile) {
-        payload.append('photo', this.photoFile, this.photoFile.name);
-      }
+                this.session.clearSession();
 
-      if (this.signatureFile) {
-        payload.append('signature', this.signatureFile, this.signatureFile.name);
-      }
+                this.router.navigate(['/', submittedApplicationNumber, 'success']);
+              } else {
+                this.errorMessage = 'Unable to submit your application. Please try again.';
+              }
+            },
 
-      // Your existing API call
-      this.session.submitApplication(payload).subscribe({
-        next: (response) => {
-          if (response.success) {
-            this.showSuccess = true;
-          } else {
-            this.errorMessage = 'Submission failed. Please try again.';
-          }
+            error: (error) => {
+              this.submitting = false;
 
-          this.submitting = false;
+              this.errorMessage =
+                error?.error?.detail || 'Unable to submit your application. Please try again.';
+
+              this.cdr.detectChanges();
+            },
+          });
         },
 
         error: (error) => {
-          this.errorMessage = 'Unable to submit your application. Please try again.';
           this.submitting = false;
+
+          this.errorMessage =
+            error?.error?.detail || 'Unable to save the declaration. Please try again.';
+
+          this.cdr.detectChanges();
         },
       });
-
-      // Success handling
-      // this.showSuccess = true;
-    } catch (error) {
-      this.errorMessage = 'Unable to submit your application. Please try again.';
-    } finally {
-      this.submitting = false;
-    }
   }
+  // =========================================================
+  // DESTROY
+  // =========================================================
 
   ngOnDestroy(): void {
     if (this.photoPreviewUrl) {

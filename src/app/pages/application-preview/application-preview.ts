@@ -1,9 +1,13 @@
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
-import { ApplicationSessionService } from '../../core/services/application-session';
-import { AdmissionFormData } from '../../core/models/application-data';
+
 import { DatePipe } from '@angular/common';
 
 import { DomSanitizer, SafeResourceUrl, SafeUrl } from '@angular/platform-browser';
+
+import { ApplicationSessionService } from '../../core/services/application-session';
+import { AdmissionFormData } from '../../core/models/application-data';
+// import { environment } from '../../../environments/environment';
+import { environment } from '../../../environments/environment.development';
 
 @Component({
   selector: 'app-application-preview',
@@ -17,93 +21,251 @@ export class ApplicationPreview implements OnInit, OnDestroy {
 
   private readonly sanitizer = inject(DomSanitizer);
 
+  // ---------------------------------------------------------
+  // APPLICATION DATA
+  // ---------------------------------------------------------
+
   application: AdmissionFormData | null = null;
-
-  qualificationFile: File | null = null;
-  aadhaarFile: File | null = null;
-  photoFile: File | null = null;
-  signatureFile: File | null = null;
-
-  photoPreviewUrl = signal<SafeUrl | null>(null);
-  signaturePreviewUrl = signal<SafeUrl | null>(null);
-  qualificationPdfUrl = signal<SafeResourceUrl | null>(null);
-  aadhaarPdfUrl = signal<SafeResourceUrl | null>(null);
-
-  private qualificationBlobUrl: string | null = null;
-  private aadhaarBlobUrl: string | null = null;
-  private photoBlobUrl: string | null = null;
-  private signatureBlobUrl: string | null = null;
 
   applicationNumber = '';
 
+  applicationDate = new Date();
+
   declarationPoints = this.session.declarationPoints;
 
-  applicationDate = new Date();
+  // ---------------------------------------------------------
+  // DOCUMENT PREVIEW URLS
+  // ---------------------------------------------------------
+
+  photoPreviewUrl = signal<SafeUrl | null>(null);
+
+  signaturePreviewUrl = signal<SafeUrl | null>(null);
+
+  qualificationPdfUrl = signal<SafeResourceUrl | null>(null);
+
+  aadhaarPdfUrl = signal<SafeResourceUrl | null>(null);
+
+  // ---------------------------------------------------------
+  // DOCUMENT URLS
+  // ---------------------------------------------------------
+
+  private photoBlobUrl: string | null = null;
+
+  private signatureBlobUrl: string | null = null;
+
+  private qualificationBlobUrl: string | null = null;
+
+  private aadhaarBlobUrl: string | null = null;
+
+  // ---------------------------------------------------------
+  // LIFECYCLE
+  // ---------------------------------------------------------
 
   ngOnInit(): void {
     this.loadApplication();
   }
 
-  private async loadApplication(): Promise<void> {
-    // -----------------------------
-    // FORM DATA
-    // -----------------------------
+  // ---------------------------------------------------------
+  // LOAD APPLICATION
+  // ---------------------------------------------------------
 
-    this.application = this.session.getFormData();
+  private loadApplication(): void {
+    const applicationId = this.session.applicationId;
 
-    // -----------------------------
-    // FILES
-    // -----------------------------
-
-    const files = await this.session.getFiles();
-    this.qualificationFile = files.qualification;
-
-    this.aadhaarFile = files.aadhaar;
-
-    this.photoFile = files.photo;
-
-    this.signatureFile = files.signature;
-
-    // -----------------------------
-    // APPLICATION NUMBER
-    // -----------------------------
+    if (!applicationId) {
+      return;
+    }
 
     this.applicationNumber = this.session.applicationNumber ?? '';
 
-    // -----------------------------
-    // CREATE PREVIEW URLs
-    // -----------------------------
+    // -------------------------------------------------------
+    // GET LATEST APPLICATION FROM BACKEND
+    // -------------------------------------------------------
 
-    this.createPreviewUrls();
+    this.session.getApplication().subscribe({
+      next: (data: any) => {
+        this.application = this.mapApplicationData(data);
+
+        this.applicationNumber = data?.application_number ?? this.applicationNumber;
+
+        this.applicationDate = data?.created_at ? new Date(data.created_at) : new Date();
+
+        this.createDocumentPreviewUrls(data);
+      },
+
+      error: () => {},
+    });
   }
 
-  private createPreviewUrls(): void {
-    if (this.photoFile) {
-      this.photoBlobUrl = URL.createObjectURL(this.photoFile);
+  // ---------------------------------------------------------
+  // MAP BACKEND RESPONSE
+  // ---------------------------------------------------------
 
-      this.photoPreviewUrl.set(this.sanitizer.bypassSecurityTrustUrl(this.photoBlobUrl));
+  private mapApplicationData(data: any): AdmissionFormData {
+    const currentAddress = data?.current_address ?? null;
+
+    const permanentAddress = data?.permanent_address ?? null;
+
+    const education = data?.education ?? null;
+
+    return {
+      ...data,
+
+      // -----------------------------------------------------
+      // STUDENT
+      // -----------------------------------------------------
+
+      fullName: data?.full_name ?? '',
+
+      email: data?.email ?? '',
+
+      mobile: data?.mobile ?? '',
+
+      // -----------------------------------------------------
+      // PARENTS
+      // -----------------------------------------------------
+
+      fatherName: data?.father_name ?? '',
+
+      fatherMobile: data?.father_mobile ?? '',
+
+      motherName: data?.mother_name ?? '',
+
+      motherMobile: data?.mother_mobile ?? '',
+
+      // -----------------------------------------------------
+      // CURRENT ADDRESS
+      // -----------------------------------------------------
+
+      currentAddressLine1: currentAddress?.address_line1 ?? '',
+
+      currentAddressLine2: currentAddress?.address_line2 ?? '',
+
+      currentCity: currentAddress?.city ?? '',
+
+      currentDistrict: currentAddress?.district ?? '',
+
+      currentState: currentAddress?.state ?? '',
+
+      currentPincode: currentAddress?.pincode ?? '',
+
+      // -----------------------------------------------------
+      // PERMANENT ADDRESS
+      // -----------------------------------------------------
+
+      permanentAddressLine1: permanentAddress?.address_line1 ?? '',
+
+      permanentAddressLine2: permanentAddress?.address_line2 ?? '',
+
+      permanentCity: permanentAddress?.city ?? '',
+
+      permanentDistrict: permanentAddress?.district ?? '',
+
+      permanentState: permanentAddress?.state ?? '',
+
+      permanentPincode: permanentAddress?.pincode ?? '',
+
+      // -----------------------------------------------------
+      // SAME ADDRESS
+      // -----------------------------------------------------
+
+      sameAddress: data?.same_address ?? false,
+
+      // -----------------------------------------------------
+      // EDUCATION
+      // -----------------------------------------------------
+
+      highestQualification:
+        education?.highest_qualification?.qualification ??
+        education?.highest_qualification?.id ??
+        data?.highest_qualification ??
+        '',
+
+      // -----------------------------------------------------
+      // DECLARATION
+      // -----------------------------------------------------
+
+      declarationAccepted: data?.declaration_accepted ?? false,
+    } as AdmissionFormData;
+  }
+
+  // ---------------------------------------------------------
+  // DOCUMENT PREVIEW URLS
+  // ---------------------------------------------------------
+
+  private createDocumentPreviewUrls(data: any): void {
+    const documents = Array.isArray(data?.documents) ? data.documents : [];
+
+    const getDocumentUrl = (documentType: string): string => {
+      const document = documents.find((item: any) => item?.document_type === documentType);
+
+      return `${environment.backEndUrl}${document?.file ?? ''}`;
+    };
+
+    const qualificationUrl = getDocumentUrl('qualification');
+
+    const aadhaarUrl = getDocumentUrl('aadhaar');
+
+    const photoUrl = getDocumentUrl('photo');
+
+    const signatureUrl = getDocumentUrl('signature');
+
+    if (qualificationUrl) {
+      this.loadAsBlob(qualificationUrl, 'qualification');
     }
 
-    if (this.signatureFile) {
-      this.signatureBlobUrl = URL.createObjectURL(this.signatureFile);
-
-      this.signaturePreviewUrl.set(this.sanitizer.bypassSecurityTrustUrl(this.signatureBlobUrl));
+    if (aadhaarUrl) {
+      this.loadAsBlob(aadhaarUrl, 'aadhaar');
     }
 
-    if (this.qualificationFile) {
-      this.qualificationBlobUrl = URL.createObjectURL(this.qualificationFile);
-
-      this.qualificationPdfUrl.set(
-        this.sanitizer.bypassSecurityTrustResourceUrl(this.qualificationBlobUrl),
-      );
+    if (photoUrl) {
+      this.loadAsBlob(photoUrl, 'photo');
     }
 
-    if (this.aadhaarFile) {
-      this.aadhaarBlobUrl = URL.createObjectURL(this.aadhaarFile);
-
-      this.aadhaarPdfUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(this.aadhaarBlobUrl));
+    if (signatureUrl) {
+      this.loadAsBlob(signatureUrl, 'signature');
     }
   }
+
+  private loadAsBlob(url: string, type: 'qualification' | 'aadhaar' | 'photo' | 'signature'): void {
+    this.session.getFile(url).subscribe({
+      next: (blob: Blob) => {
+        const blobUrl = URL.createObjectURL(blob);
+
+        switch (type) {
+          case 'qualification':
+            this.qualificationBlobUrl = blobUrl;
+
+            this.qualificationPdfUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(blobUrl));
+            break;
+
+          case 'aadhaar':
+            this.aadhaarBlobUrl = blobUrl;
+
+            this.aadhaarPdfUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(blobUrl));
+            break;
+
+          case 'photo':
+            this.photoBlobUrl = blobUrl;
+
+            this.photoPreviewUrl.set(this.sanitizer.bypassSecurityTrustUrl(blobUrl));
+            break;
+
+          case 'signature':
+            this.signatureBlobUrl = blobUrl;
+
+            this.signaturePreviewUrl.set(this.sanitizer.bypassSecurityTrustUrl(blobUrl));
+            break;
+        }
+      },
+
+      error: () => {},
+    });
+  }
+
+  // ---------------------------------------------------------
+  // DESTROY
+  // ---------------------------------------------------------
 
   ngOnDestroy(): void {
     if (this.photoBlobUrl) {

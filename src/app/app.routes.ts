@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { AdmissionForm } from './pages/admission-form/admission-form';
 import { AdmissionLayout } from './shared/layout/admission-layout/admission-layout';
 import { ApplicationPreview } from './pages/application-preview/application-preview';
+import { ApplicationSuccess } from './pages/application-success/application-success';
 
 export const routes: Routes = [
   {
@@ -21,6 +22,11 @@ export const routes: Routes = [
       {
         path: ':applicationNumber/preview',
         component: ApplicationPreview,
+      },
+
+      {
+        path: ':applicationNumber/success',
+        component: ApplicationSuccess,
       },
     ],
   },

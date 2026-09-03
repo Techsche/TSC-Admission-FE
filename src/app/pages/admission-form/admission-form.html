@@ -663,53 +663,24 @@
             </div>
 
             <div class="qualification-options">
-              <label class="qualification-option">
-                <input type="radio" value="PG" formControlName="highestQualification" />
+              
+              @for (qualification of educationalQualifications; track $index) {
+                <label class="qualification-option">
+                  <input
+                    type="radio"
+                    [value]="qualification.id"
+                    formControlName="highestQualification"
+                  />
 
-                <span class="qualification-radio"></span>
+                  <span class="qualification-radio"></span>
 
-                <span class="qualification-content">
-                  <strong>PG</strong>
+                  <span class="qualification-content">
+                    <strong>{{ qualification.qualification }}</strong>
+                  </span>
+                </label>
+              }
 
-                  <small>Post Graduate</small>
-                </span>
-              </label>
-
-              <label class="qualification-option">
-                <input type="radio" value="UG" formControlName="highestQualification" />
-
-                <span class="qualification-radio"></span>
-
-                <span class="qualification-content">
-                  <strong>UG</strong>
-
-                  <small>Under Graduate</small>
-                </span>
-              </label>
-
-              <label class="qualification-option">
-                <input type="radio" value="+2" formControlName="highestQualification" />
-
-                <span class="qualification-radio"></span>
-
-                <span class="qualification-content">
-                  <strong>+2</strong>
-
-                  <small>Higher Secondary</small>
-                </span>
-              </label>
-
-              <label class="qualification-option">
-                <input type="radio" value="10" formControlName="highestQualification" />
-
-                <span class="qualification-radio"></span>
-
-                <span class="qualification-content">
-                  <strong>10</strong>
-
-                  <small>Secondary School</small>
-                </span>
-              </label>
+             
             </div>
 
             @if (isInvalid('highestQualification')) {
@@ -733,9 +704,14 @@
             </div>
 
             <div class="document-upload-grid">
-              <!-- Qualification Certificate -->
+              <!-- ==================================================
+                   QUALIFICATION CERTIFICATE
+              =================================================== -->
 
-              <div class="document-upload">
+              <div
+                class="document-upload"
+                [class.uploading]="uploadingDocumentType === 'qualification'"
+              >
                 <div class="document-upload-title">
                   <strong>
                     Qualification Certificate
@@ -745,12 +721,21 @@
                   <small> PDF, JPG or PNG · Max 10 MB </small>
                 </div>
 
-                @if (!qualificationFile) {
+                @if (uploadingDocumentType === 'qualification') {
+                  <div class="document-loader">
+                    <div class="loader loader-small"></div>
+
+                    <strong>Uploading certificate...</strong>
+
+                    <small> Please wait while the document is uploaded. </small>
+                  </div>
+                } @else if (!qualificationFile) {
                   <label class="file-dropzone">
                     <input
                       type="file"
                       accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
                       (change)="onFileSelected($event, 'qualification')"
+                      [disabled]="uploadingDocuments"
                     />
 
                     <span class="upload-icon">↑</span>
@@ -771,7 +756,12 @@
                       <small> File selected </small>
                     </div>
 
-                    <button type="button" class="remove-file" (click)="removeFile('qualification')">
+                    <button
+                      type="button"
+                      class="remove-file"
+                      (click)="removeFile('qualification')"
+                      [disabled]="uploadingDocuments"
+                    >
                       Remove
                     </button>
                   </div>
@@ -784,9 +774,11 @@
                 }
               </div>
 
-              <!-- Aadhaar -->
+              <!-- ==================================================
+                   AADHAAR
+              =================================================== -->
 
-              <div class="document-upload">
+              <div class="document-upload" [class.uploading]="uploadingDocumentType === 'aadhaar'">
                 <div class="document-upload-title">
                   <strong>
                     Aadhaar Card
@@ -796,12 +788,21 @@
                   <small> PDF, JPG or PNG · Max 10 MB </small>
                 </div>
 
-                @if (!aadhaarFile) {
+                @if (uploadingDocumentType === 'aadhaar') {
+                  <div class="document-loader">
+                    <div class="loader loader-small"></div>
+
+                    <strong>Uploading Aadhaar...</strong>
+
+                    <small> Please wait while the document is uploaded. </small>
+                  </div>
+                } @else if (!aadhaarFile) {
                   <label class="file-dropzone">
                     <input
                       type="file"
                       accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
                       (change)="onFileSelected($event, 'aadhaar')"
+                      [disabled]="uploadingDocuments"
                     />
 
                     <span class="upload-icon">↑</span>
@@ -822,7 +823,12 @@
                       <small> File selected </small>
                     </div>
 
-                    <button type="button" class="remove-file" (click)="removeFile('aadhaar')">
+                    <button
+                      type="button"
+                      class="remove-file"
+                      (click)="removeFile('aadhaar')"
+                      [disabled]="uploadingDocuments"
+                    >
                       Remove
                     </button>
                   </div>
@@ -835,28 +841,35 @@
                 }
               </div>
 
-              <!-- Photo -->
+              <!-- ==================================================
+                   PHOTO
+              =================================================== -->
 
-              <!-- ======================================================
-     PHOTO
-======================================================= -->
-
-              <div class="document-upload">
+              <div class="document-upload" [class.uploading]="uploadingDocumentType === 'photo'">
                 <div class="document-upload-title">
                   <strong>
                     Passport Size Photo
                     <span class="required">*</span>
                   </strong>
 
-                  <small> JPG / PNG · Max 2 MB · Min 300 × 400 px </small>
+                  <small> JPG / PNG · Max 10 MB </small>
                 </div>
 
-                @if (!photoFile) {
+                @if (uploadingDocumentType === 'photo') {
+                  <div class="document-loader">
+                    <div class="loader loader-small"></div>
+
+                    <strong>Uploading photo...</strong>
+
+                    <small> Please wait while the photo is uploaded. </small>
+                  </div>
+                } @else if (!photoFile) {
                   <label class="file-dropzone">
                     <input
                       type="file"
                       accept=".jpg,.jpeg,.png,image/jpeg,image/png"
                       (change)="onFileSelected($event, 'photo')"
+                      [disabled]="uploadingDocuments"
                     />
 
                     <span class="upload-icon">↑</span>
@@ -867,15 +880,11 @@
                   </label>
                 } @else {
                   <div class="selected-image-file">
-                    <!-- IMAGE PREVIEW -->
-
                     @if (photoPreviewUrl) {
                       <div class="image-preview photo-preview">
                         <img [src]="photoPreviewUrl" alt="Passport Size Photo" />
                       </div>
                     }
-
-                    <!-- FILE INFO -->
 
                     <div class="selected-file-info">
                       <strong>
@@ -885,9 +894,12 @@
                       <small> Photo selected </small>
                     </div>
 
-                    <!-- REMOVE -->
-
-                    <button type="button" class="remove-file" (click)="removeFile('photo')">
+                    <button
+                      type="button"
+                      class="remove-file"
+                      (click)="removeFile('photo')"
+                      [disabled]="uploadingDocuments"
+                    >
                       Remove
                     </button>
                   </div>
@@ -900,28 +912,38 @@
                 }
               </div>
 
-              <!-- Signature -->
+              <!-- ==================================================
+                   SIGNATURE
+              =================================================== -->
 
-              <!-- ======================================================
-     SIGNATURE
-======================================================= -->
-
-              <div class="document-upload">
+              <div
+                class="document-upload"
+                [class.uploading]="uploadingDocumentType === 'signature'"
+              >
                 <div class="document-upload-title">
                   <strong>
                     Signature
                     <span class="required">*</span>
                   </strong>
 
-                  <small> JPG / PNG · Max 1 MB · Min 400 × 150 px </small>
+                  <small> JPG / PNG · Max 10 MB </small>
                 </div>
 
-                @if (!signatureFile) {
+                @if (uploadingDocumentType === 'signature') {
+                  <div class="document-loader">
+                    <div class="loader loader-small"></div>
+
+                    <strong>Uploading signature...</strong>
+
+                    <small> Please wait while the signature is uploaded. </small>
+                  </div>
+                } @else if (!signatureFile) {
                   <label class="file-dropzone">
                     <input
                       type="file"
                       accept=".jpg,.jpeg,.png,image/jpeg,image/png"
                       (change)="onFileSelected($event, 'signature')"
+                      [disabled]="uploadingDocuments"
                     />
 
                     <span class="upload-icon">↑</span>
@@ -932,15 +954,11 @@
                   </label>
                 } @else {
                   <div class="selected-image-file">
-                    <!-- SIGNATURE PREVIEW -->
-
                     @if (signaturePreviewUrl) {
                       <div class="image-preview signature-preview">
                         <img [src]="signaturePreviewUrl" alt="Applicant Signature" />
                       </div>
                     }
-
-                    <!-- FILE INFO -->
 
                     <div class="selected-file-info">
                       <strong>
@@ -950,9 +968,12 @@
                       <small> Signature selected </small>
                     </div>
 
-                    <!-- REMOVE -->
-
-                    <button type="button" class="remove-file" (click)="removeFile('signature')">
+                    <button
+                      type="button"
+                      class="remove-file"
+                      (click)="removeFile('signature')"
+                      [disabled]="uploadingDocuments"
+                    >
                       Remove
                     </button>
                   </div>
@@ -965,6 +986,22 @@
                 }
               </div>
             </div>
+
+            <!-- ==================================================
+                 DOCUMENT UPLOAD SUMMARY
+            =================================================== -->
+
+            @if (uploadingDocuments) {
+              <div class="upload-progress">
+                <div class="upload-progress-spinner"></div>
+
+                <div class="upload-progress-content">
+                  <strong> Uploading documents </strong>
+
+                  <span> Please wait. Do not close or refresh this page. </span>
+                </div>
+              </div>
+            }
           </div>
         </div>
 
@@ -1059,54 +1096,89 @@
       ==================================================== -->
 
       <div class="form-actions">
-        <!-- BACK -->
+        <!-- =====================================================
+       BACK
+  ====================================================== -->
+
         @if (currentStep > 1) {
           <button
             type="button"
             class="btn btn-secondary"
             (click)="previous()"
-            [disabled]="saving || submitting"
+            [disabled]="isSavingStep || submitting || uploadingDocuments"
           >
             <span>←</span>
-            Back
+
+            <span>Back</span>
           </button>
         } @else {
           <div></div>
         }
 
-        <!-- CONTINUE: STEPS 1–4 -->
+        <!-- =====================================================
+       CONTINUE - STEPS 1 TO 4
+  ====================================================== -->
+
         @if (currentStep < totalSteps) {
-          <button type="submit" class="btn btn-primary" [disabled]="saving || submitting">
-            Continue
-            <span>→</span>
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="isSavingStep || submitting || uploadingDocuments"
+          >
+            @if (isSavingStep) {
+              <span class="button-loader" aria-hidden="true"></span>
+
+              @if (uploadingDocuments) {
+                <span>Uploading...</span>
+              } @else {
+                <span>Saving...</span>
+              }
+            } @else {
+              <span>Continue</span>
+
+              <span>→</span>
+            }
           </button>
         }
 
-        <!-- STEP 5 -->
+        <!-- =====================================================
+       STEP 5
+  ====================================================== -->
+
         @if (currentStep === totalSteps) {
           <div class="final-actions">
-            <!-- PREVIEW -->
+            <!-- =================================================
+           PREVIEW
+      ================================================== -->
+
             <button
               type="button"
               class="btn btn-secondary"
-              [disabled]="saving || submitting"
+              [disabled]="isSavingStep || submitting || uploadingDocuments"
               (click)="openPreview()"
             >
               <span>Preview Application</span>
+
               <span>↗</span>
             </button>
 
-            <!-- FINAL SUBMIT -->
+            <!-- =================================================
+           FINAL SUBMIT
+      ================================================== -->
+
             <button
               type="button"
               class="btn btn-primary"
-              [disabled]="saving || submitting"
+              [disabled]="isSavingStep || submitting || uploadingDocuments"
               (click)="finalSubmit()"
             >
               @if (submitting) {
+                <span class="button-loader" aria-hidden="true"></span>
+
                 <span>Submitting...</span>
               } @else {
                 <span>Submit Application</span>
+
                 <span>✓</span>
               }
             </button>
