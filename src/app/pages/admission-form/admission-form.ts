@@ -7,7 +7,7 @@ import { Router } from '@angular/router';
 import { AdmissionApiService } from '../../core/services/admission-api';
 import { ApplicationSessionService } from '../../core/services/application-session';
 import { EducationalQualification } from '../../core/models/education-qualification';
-import { environment } from '../../../environments/environment.development';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-admission-form',

@@ -6,8 +6,8 @@ import { DomSanitizer, SafeResourceUrl, SafeUrl } from '@angular/platform-browse
 
 import { ApplicationSessionService } from '../../core/services/application-session';
 import { AdmissionFormData } from '../../core/models/application-data';
-// import { environment } from '../../../environments/environment';
-import { environment } from '../../../environments/environment.development';
+import { environment } from '../../../environments/environment';
+// import { environment } from '../../../environments/environment.development';
 
 @Component({
   selector: 'app-application-preview',

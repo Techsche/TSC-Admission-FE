@@ -1,9 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../../environments/environment.development';
+// import { environment } from '../../../environments/environment.development';
 import { EducationalQualification } from '../models/education-qualification';
-// import { environment } from '../../../environments/environment';
+import { environment } from '../../../environments/environment';
 
 export interface StartApplicationResponse {
   success: boolean;
